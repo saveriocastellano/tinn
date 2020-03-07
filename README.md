@@ -1,5 +1,6 @@
 # TINN - 
 TINN stands for TINN-Is-Not-NodeJS. 
+TINN is a Javascript application toolkit that is based on google-V8 D8 Javascript shell.  
 
 ## Features
 
