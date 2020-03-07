@@ -20,7 +20,7 @@ Currently the following native modules are available:
 
 * **HTTP**: module based on FCGI++ and Curl. It allows implementing a fully functional Web Server (based on Fast CGI) and provides support for sending external HTTP requests 
 * **Redis**: provides support to connect to Redis servers. Two separate modules are implemented: one to connect to a single Redis server  and one to support connecting to Redis clusters
-* **SSDB**: allows connecting to SSDB servers. It supports data sharding through key hashing.
+* **SSDB**: allows connecting to SSDB servers. It supports data sharding through key hashing and master/master or master/slave replication for failover and high availability.
 * **LevelDB**: LevelDB database support. Allows implementing a local key-value storage based on LevelDB.
 * **Logging**: Support for logging based on log4cxx library
 * **OS**: implements basic functionalities to interact with the OS (opening, reading, writing files, environment variables, etc)
