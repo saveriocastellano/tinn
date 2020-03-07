@@ -35,26 +35,31 @@ Setting up TINN involves the following steps:
 * apply the TINN patch to the d8 source files
 * rebuild d8
 
-The reason why it is necessary to first build d8 and then apply the patch and then rebuild is because the patch changes also one of the makefiles that is generated when building d8. The latest rebuild step is not a full rebuild as it only involes compiling one single source file and re-linking the d8 executable. 
+The reason why it is necessary to first build d8 and then apply the patch is because the TINN patch changes also one of the makefiles that is generated when building d8. The latest rebuild step is not a full rebuild as it only involes compiling one single source file and re-linking the d8 executable. 
 
 
+Download and build v8/d8:
 ```sh
 
-git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-export PATH=$PATH:`pwd`/depot_tools
-mkdir ~/v8
-cd ~/v8
-fetch v8
-cd v8
-gclient sync
-./build/install-build-deps.sh
-git checkout 7.9.1
-tools/dev/gm.py x64.release
+$ git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+$ export PATH=$PATH:`pwd`/depot_tools
+$ mkdir ~/v8
+$ cd ~/v8
+$ fetch v8
+$ cd v8
+$ gclient sync
+$ ./build/install-build-deps.sh
+$ git checkout 7.9.1
+$ tools/dev/gm.py x64.release
 
-
-
-TO BE CONTINUED
 ```
+Download TINN and apply the patch:
+
+```sh
+$ wget 
+
+```
+
 
 ## Web Application ##
 This example shows how to write a simple web application that replies with "Hello World!" on any request.
