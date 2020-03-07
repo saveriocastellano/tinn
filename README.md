@@ -13,10 +13,16 @@ Just like NodeJS, TINN is based on the google-v8 engine and it provides a number
 
 
 ## Features
+Currently the following native modules are available
 
-* ...
-* ...
-* ...
+* HTTP: module based on FCGI++ and Curl. It allows implementing a fully functional Web Server (based on Fast CGI) and provides support for sending external HTTP requests 
+* Redis: provides support to connect to Redis servers. Two separate modules are implemented: one to connect to a single Redis server  and one to support connecting to Redis clusters
+* SSDB: 
+* LevelDB:
+* Logging:
+* OS: 
+* HyperLogLog:
+* JS:
 
 ## Compile and Install
 
