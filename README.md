@@ -110,8 +110,10 @@ $ ./d8 --snapshot_blob=snapshot_blob.bin HelloWorld.js
 ## Multithreaded Web Application ##
 
 Let's see how we can modify the previous example in order to run our Web Application on multiple threads.
+
 Basically this is just a matter of splitting HelloWorld.js in two parts: the first part main.js sets up the FCGI server and creates the worker threads, and the second part worker.js is the code of the worker threads that is in charge of processing the requests.
 
+main.js
 ```sh
 
 var sockAddr = '127.0.0.1:8200'
@@ -125,6 +127,17 @@ for(var i=0; i<threads; i++) {
 	new Worker('worker.js');
 }
 
-
 ```
 
+worker.js
+```sh
+
+while(true) {
+        Http.accept();
+        Http.print("Status: 200 OK\r\n");
+        Http.print("Content-type: text/html\r\n");
+        Http.print("\r\n");
+        Http.print("Hello World!");
+	Http.finish();	
+}
+```
