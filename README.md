@@ -155,7 +155,7 @@ $ ./d8 --snapshot_blob=snapshot_blob.bin main.js
 ```
 
 ## Clustered Web Application ##
-A clustered Web Application can be easily created by running several TINN processes (like the HelloWorld.js example above) on different machines (or different port of the same machine) and then defining a cluster in the NGINX configuration file through the 'upstream' directive.
+A clustered Web Application can be easily created by running several TINN processes (like the HelloWorld.js example above) on different machines (or different ports of the same machine) and then defining a cluster in the NGINX configuration file through the 'upstream' directive.
 
 Let's say we have three HelloWorld.js running on ports 8201, 8202 and 8303. We can define our cluster in NGINX with the following 'upstream' directive:
 
