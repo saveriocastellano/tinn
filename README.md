@@ -141,3 +141,10 @@ while(true) {
 	Http.finish();	
 }
 ```
+
+
+And then run the web application with:
+
+```sh
+$ ./d8 --snapshot_blob=snapshot_blob.bin main.js
+```
