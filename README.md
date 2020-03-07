@@ -29,6 +29,14 @@ Currently the following native modules are available:
 
 
 ## Compile and Install
+Setting up TINN involves the following steps:
+
+* download and build google-v8 engine the the d8 shell executable
+* apply the TINN patch to the d8 source files
+* rebuild d8
+
+The reason why it is necessary to first build d8 and then apply the patch and then rebuild is because the patch changes also one of the makefiles that is generated when building d8. The latest rebuild step is not a full rebuild as it only involes compiling one single source file and re-linking the d8 executable. 
+
 
 ```sh
 
