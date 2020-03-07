@@ -1,0 +1,10 @@
+cmake_install.cmake
+CMakeCache.txt
+CTestTestfile.cmake
+Makefile
+Testing
+CMakeFiles
+.cproject
+test_hyperloglog
+test_hyperloglog_hip
+tags
