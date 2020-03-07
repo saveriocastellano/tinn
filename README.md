@@ -100,3 +100,8 @@ location / {
 	fastcgi_param  SERVER_NAME        $server_name;
 }
 ```
+Now we can run the web application by doing:
+
+```sh
+$ ./d8 --snapshot_blob=snapshot_blob.bin HelloWorld.js
+```
