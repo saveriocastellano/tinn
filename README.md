@@ -54,7 +54,7 @@ This example shows how to write a simple web application that replies with "Hell
 Because Web Application support in TINN is based on FCGI++, in order to implement a web application it is necessary to use 
 a FCGI-capable Web Server like NGINX or Apache acting as a HTTP frontend. 
 
-The following defines a script called HelloWorld.js that sets up a FCGI listening socket on 8200 and replies with 'Hello World' to every request: 
+The following defines a script called HelloWorld.js that sets up a FCGI server on 8200 that replies with 'Hello World' to every request: 
 
 ```sh
 
@@ -70,6 +70,8 @@ while(true) {
 }
 
 ```
+
+Next thing to do is to define a location in NGINX configuration file that forwards all incoming HTTP requests to our TINN web application (note the 'fastcgi_pass' directive pointing to the ip and port of our example server):
 
 ```sh
 
