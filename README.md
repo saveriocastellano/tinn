@@ -100,6 +100,8 @@ location / {
 	fastcgi_param  SERVER_NAME        $server_name;
 }
 ```
+**NB**: don't forget that in NGINX 'location' directives must be placed inside 'server'
+
 Now we can run the web application by doing:
 
 ```sh
