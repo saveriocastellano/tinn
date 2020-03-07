@@ -48,7 +48,7 @@ tools/dev/gm.py x64.release
 
 ```
 
-## Web server ##
+## Web Application ##
 This example shows how to write a simple web application that replies with "Hello World!" on any request.
 
 Because Web Application support in TINN is based on FCGI++, in order to implement a web application it is necessary to use 
@@ -105,3 +105,6 @@ Now we can run the web application by doing:
 ```sh
 $ ./d8 --snapshot_blob=snapshot_blob.bin HelloWorld.js
 ```
+
+
+## Multithreaded Web Application ##
