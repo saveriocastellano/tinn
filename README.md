@@ -153,3 +153,40 @@ And then run the web application with:
 ```sh
 $ ./d8 --snapshot_blob=snapshot_blob.bin main.js
 ```
+
+## Clustered Web Application ##
+A clustered Web Application can be easily created by running several TINN processes (like the HelloWorld.js example above) on different machines (or different port of the same machine) and then defining a cluster in the NGINX configuration file through the 'upstream' directive.
+
+Let's say we have three HelloWorld.js running on ports 8201, 8202 and 8303. We can define our cluster in NGINX with the following 'upstream' directive:
+
+```sh
+
+upstream cluster {
+        least_conn;
+        keepalive 100;
+        server 127.0.0.1:8201;
+        server 127.0.0.1:8202;
+        server 127.0.0.1:8203;
+}
+```
+
+Then inside the 'server' section we define the 'location' as usual but this time the 'fastcgi_pass' directive points to our cluster instead of pointing to a specific ip and port:
+
+``sh
+location / {
+	fastcgi_read_timeout 255;
+	fastcgi_pass $cluster;
+
+	fastcgi_param  QUERY_STRING       $query_string;
+	fastcgi_param  REQUEST_METHOD     $request_method;
+	fastcgi_param  CONTENT_TYPE       $content_type;
+	fastcgi_param  CONTENT_LENGTH     $content_length;
+	fastcgi_param  SCRIPT_NAME        $fastcgi_script_name;
+	fastcgi_param  REQUEST_URI        $request_uri;
+	fastcgi_param  SERVER_PROTOCOL    $server_protocol;
+	fastcgi_param  REMOTE_ADDR        $remote_addr;
+	fastcgi_param  REMOTE_PORT        $remote_port;
+	fastcgi_param  SERVER_ADDR        $server_addr;
+	fastcgi_param  SERVER_PORT        $server_port;
+	fastcgi_param  SERVER_NAME        $server_name;
+}
