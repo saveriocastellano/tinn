@@ -172,7 +172,7 @@ upstream cluster {
 
 Then inside the 'server' section we define the 'location' as usual but this time the 'fastcgi_pass' directive points to our cluster instead of pointing to a specific ip and port:
 
-``sh
+```sh
 location / {
 	fastcgi_read_timeout 255;
 	fastcgi_pass $cluster;
@@ -190,3 +190,4 @@ location / {
 	fastcgi_param  SERVER_PORT        $server_port;
 	fastcgi_param  SERVER_NAME        $server_name;
 }
+```
