@@ -107,7 +107,10 @@ Now we can run the web application by doing:
 ```sh
 $ ./d8 --snapshot_blob=snapshot_blob.bin HelloWorld.js
 ```
-
+And if NGINX is running on port 80 on the same machine we can send a request to our Web Application by doing:
+```sh
+$ curl http://127.0.0.1/
+```
 
 ## Multithreaded Web Application ##
 
