@@ -4,6 +4,11 @@ TINN stands for TINN-Is-Not-NodeJS.
 TINN is a Javascript application toolkit based on the D8 Javascript shell from google-v8. TINN modifies D8 through a patch
 file in order to add to it the capability of dynamically loading external C++ modules. 
 
+Similarly to native modules in NodeJS, external modules are native shared libraries that provide additional functionalities that are exported to the Javascript context. 
+
+Application based on TINN are entirely written in Javascript and run through the (modified) D8 shell. 
+Support for threads is available through the 'Worker' Javascript class implemented in D8. 
+
 ## Features
 
 * ...
