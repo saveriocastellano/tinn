@@ -56,10 +56,17 @@ $ tools/dev/gm.py x64.release
 Download TINN and apply the patch:
 
 ```sh
-$ wget 
+$ wget https://github.com/saveriocastellano/tinn/archive/master.zip
+$ unzip master.zip
+$ cd master
 
 ```
 
+Apply the TINN patch to d8 sources, from the v8 directory do:
+
+```sh
+
+```
 
 ## Web Application ##
 This example shows how to write a simple web application that replies with "Hello World!" on any request.
