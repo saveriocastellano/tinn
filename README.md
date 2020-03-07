@@ -9,7 +9,7 @@ Similarly to native modules in NodeJS, external modules are native shared librar
 Applications based on TINN are entirely written in Javascript and run through the (modified) D8 shell. 
 Support for threads is available through the 'Worker' Javascript class implemented in D8. 
 
-Just like NodeJS, TINN is based on the google v8 engine and it provides a number of native modules each one in charge of implementing a specific functionality that is "exported" to the underlying Javascript context. From an architecture viewpoint instead, TINN is the opposite of NodeJS: in TINN I/O operations are blocking and applications run on multiple threads, whereas NodeJS was born as a single thread async framework.
+Just like NodeJS, TINN is based on the google v8 engine and it provides a number of native modules each one in charge of implementing a specific functionality that is "exported" to the underlying Javascript context. From an architecture viewpoint instead, TINN is the opposite of NodeJS: in TINN input/output operations are blocking and applications run on multiple cores through threads (Worker class), whereas NodeJS was born as a single-threaded async framework.
 
 
 ## Features
