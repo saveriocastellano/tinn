@@ -65,7 +65,7 @@ Now from the v8 directory where d8 was built apply the patch with the following 
 $ patch -p1 < ../../master/modules/build/libs/v8_7.9/d8_v7.9.patch 
 ```
 
-And then build the new d8 executable:
+And then build the modified d8 executable:
 ```sh
 $ tools/dev/gm.py x64.release
 ```
