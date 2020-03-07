@@ -56,12 +56,12 @@ The example snippet below shows a simple Web Server that listens on port 8200 an
 Http.openSocket('127.0.0.1:8200');
 
 while(true) {
-			Http.accept();
-      Http.print("Status: 200 OK\r\n");
-      Http.print("Content-type: text/html\r\n");
-      Http.print("\r\n");
-      Http.print("Hello World!");
-			Http.finish();	
+        Http.accept();
+        Http.print("Status: 200 OK\r\n");
+        Http.print("Content-type: text/html\r\n");
+        Http.print("\r\n");
+        Http.print("Hello World!");
+	Http.finish();	
 }
 
 ```
