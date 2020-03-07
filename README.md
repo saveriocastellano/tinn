@@ -1,4 +1,4 @@
-# TINN - A fast NoSQL database for storing big list of data
+# TINN - 
 
 
 
