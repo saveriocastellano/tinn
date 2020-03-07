@@ -1,6 +1,5 @@
 # TINN - 
-
-
+TINN stands for TINN-Is-Not-NodeJS. 
 
 ## Features
 
