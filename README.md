@@ -58,7 +58,10 @@ The following defines a script called HelloWorld.js that sets up a FCGI server o
 
 ```sh
 
-Http.openSocket('127.0.0.1:8200');
+var sockAddr = '127.0.0.1:8200'
+Http.openSocket(sockAddr);
+
+print("Server listening on: " + sockAddr);
 
 while(true) {
         Http.accept();
