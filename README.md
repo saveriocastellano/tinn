@@ -47,3 +47,21 @@ tools/dev/gm.py x64.release
 
 
 ```
+
+## Web server ##
+The example snippet below shows a simple Web Server that listens on port 8200 and replies with "Hello World!" on any request.
+
+```sh
+
+Http.openSocket('127.0.0.1:8200');
+
+while(true) {
+			Http.accept();
+      Http.print("Status: 200 OK\r\n");
+      Http.print("Content-type: text/html\r\n");
+      Http.print("\r\n");
+      Http.print("Hello World!");
+			Http.finish();	
+}
+
+```
