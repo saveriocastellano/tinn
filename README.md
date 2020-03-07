@@ -14,8 +14,7 @@ Just like NodeJS, TINN is based on the google-v8 engine and it provides a number
 
 ## Features
 
-TINN is a complete application toolkit that enriches the Javascript language with funtionalities that allow Javascript programmers to implement a Web Server, uses databases, send HTTP requests, etc. Additional functionalities can be added easily by implementing new native modules.
-
+TINN is a complete application toolkit that allows Javascript programmers to implement web applications, use databases, send HTTP requests, etc. Additional functionalities can be added easily by implementing new native modules.
 
 Currently the following native modules are available:
 
