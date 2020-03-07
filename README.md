@@ -25,7 +25,7 @@ Currently the following native modules are available:
 * **Logging**: Support for logging based on log4cxx library
 * **OS**: implements basic functionalities to interact with the OS (opening, reading, writing files, environment variables, etc)
 * **HyperLogLog**: implements the HyperLogLog algorithm
-* **JS**: provide support to create isolated Javascript execution environments (through the d8 'Realm' class)
+* **JS**: provides support for creating isolated Javascript execution environments (through the d8 'Realm' class)
 
 
 ## Compile and Install
