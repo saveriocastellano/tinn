@@ -53,19 +53,21 @@ $ git checkout 7.9.1
 $ tools/dev/gm.py x64.release
 
 ```
-Download TINN and apply the patch:
+Download TINN:
 
 ```sh
 $ wget https://github.com/saveriocastellano/tinn/archive/master.zip
 $ unzip master.zip
-$ cd master
 
 ```
-
-Apply the TINN patch to d8 sources, from the v8 directory do:
-
+Now from the v8 directory where d8 was built apply the patch with the following command:
 ```sh
+$ patch -p1 < ../../master/modules/build/libs/v8_7.9/d8_v7.9.patch 
+```
 
+And then build the new d8 executable:
+```sh
+$ tools/dev/gm.py x64.release
 ```
 
 ## Web Application ##
