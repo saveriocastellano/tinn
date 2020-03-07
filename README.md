@@ -28,7 +28,7 @@ Currently the following native modules are available:
 * **JS**: provides support for creating isolated Javascript execution environments (through the d8 'Realm' class)
 
 
-## Compile and Install
+## Compile and Install ##
 Setting up TINN involves the following steps:
 
 * download and build google-v8 engine the the d8 shell executable
