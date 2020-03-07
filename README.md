@@ -45,7 +45,7 @@ tools/dev/gm.py x64.release
 
 
 
-TO BE CONTIUNUED
+TO BE CONTINUED
 ```
 
 ## Web Application ##
