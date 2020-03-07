@@ -49,7 +49,12 @@ tools/dev/gm.py x64.release
 ```
 
 ## Web server ##
-The example snippet below shows a simple Web Server that listens on port 8200 and replies with "Hello World!" on any request.
+This example shows how to write a simple web application that replies with "Hello World!" on any request.
+
+Because Web Application support in TINN is based on FCGI++, in order to implement a web application it is necessary to use 
+a FCGI-capable Web Server like NGINX or Apache acting as a HTTP frontend. 
+
+The following defines a script called HelloWorld.js that sets up a FCGI listening socket on 8200 and replies with 'Hello World' to every request: 
 
 ```sh
 
@@ -64,4 +69,29 @@ while(true) {
 	Http.finish();	
 }
 
+```
+
+```sh
+
+location / {
+	fastcgi_pass 127.0.0.1:8201;
+	fastcgi_read_timeout 255;
+        fastcgi_param  GATEWAY_INTERFACE  CGI/1.1;
+	fastcgi_param  SERVER_SOFTWARE    nginx;
+	fastcgi_param  QUERY_STRING       $query_string;
+	fastcgi_param  REQUEST_METHOD     $request_method;
+	fastcgi_param  CONTENT_TYPE       $content_type;
+	fastcgi_param  CONTENT_LENGTH     $content_length;
+	fastcgi_param  SCRIPT_FILENAME    $document_root$fastcgi_script_name;
+	fastcgi_param  SCRIPT_NAME        $fastcgi_script_name;
+	fastcgi_param  REQUEST_URI        $request_uri;
+	fastcgi_param  DOCUMENT_URI       $document_uri;
+	fastcgi_param  DOCUMENT_ROOT      $document_root;
+	fastcgi_param  SERVER_PROTOCOL    $server_protocol;
+	fastcgi_param  REMOTE_ADDR        $remote_addr;
+	fastcgi_param  REMOTE_PORT        $remote_port;
+	fastcgi_param  SERVER_ADDR        $server_addr;
+	fastcgi_param  SERVER_PORT        $server_port;
+	fastcgi_param  SERVER_NAME        $server_name;
+}
 ```
