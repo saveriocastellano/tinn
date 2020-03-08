@@ -124,11 +124,11 @@ This example shows how to write a simple web application that replies with "Hell
 Because Web Application support in TINN is based on FCGI++, in order to implement a web application it is necessary to use 
 a FCGI-capable Web Server like NGINX or Apache acting as a HTTP frontend. 
 
-The following defines a script called HelloWorld.js that sets up a FCGI server on 8200 that replies with 'Hello World' to every request: 
+The following defines a script called helloworld.js that sets up a FCGI server on 8200 that replies with 'Hello World' to every request: 
 
 ```sh
 
-var sockAddr = '127.0.0.1:8200'
+var sockAddr = '127.0.0.1:8210'
 Http.openSocket(sockAddr);
 
 print("Server listening on: " + sockAddr);
@@ -151,7 +151,7 @@ Next thing to do is to define a location in NGINX configuration file that forwar
 ```sh
 
 location / {
-	fastcgi_pass 127.0.0.1:8201;
+	fastcgi_pass 127.0.0.1:8211;
 	fastcgi_read_timeout 255;
         fastcgi_param  GATEWAY_INTERFACE  CGI/1.1;
 	fastcgi_param  SERVER_SOFTWARE    nginx;
@@ -177,7 +177,7 @@ location / {
 Now we can run the web application by doing:
 
 ```sh
-$ ./d8 --snapshot_blob=snapshot_blob.bin HelloWorld.js
+$ ./d8 --snapshot_blob=snapshot_blob.bin helloworld.js
 ```
 And if NGINX is running on port 80 on the same machine we can send a request to our Web Application by doing:
 ```sh
@@ -188,12 +188,12 @@ $ curl http://127.0.0.1/
 
 Let's see how we can modify the previous example in order to run our Web Application on multiple threads.
 
-Basically this is just a matter of splitting HelloWorld.js in two parts: the first part main.js sets up the FCGI server and creates the worker threads, and the second part worker.js is the code of the worker threads that is in charge of processing the requests.
+Basically this is just a matter of splitting helloworld.js in two parts: the first part main.js sets up the FCGI server and creates the worker threads, and the second part worker.js is the code of the worker threads that is in charge of processing the requests.
 
 main.js
 ```sh
 
-var sockAddr = '127.0.0.1:8200'
+var sockAddr = '127.0.0.1:8210'
 Http.openSocket(sockAddr);
 
 print("Server listening on: " + sockAddr);
@@ -228,18 +228,18 @@ $ ./d8 --snapshot_blob=snapshot_blob.bin main.js
 ```
 
 ## Clustered Web Application ##
-A clustered Web Application can be easily created by running several TINN processes (like the HelloWorld.js example above) on different machines (or different ports of the same machine) and then defining a cluster in the NGINX configuration file through the 'upstream' directive.
+A clustered Web Application can be easily created by running several TINN processes (like the helloworld.js example above) on different machines (or different ports of the same machine) and then defining a cluster in the NGINX configuration file through the 'upstream' directive.
 
-Let's say we have three HelloWorld.js running on ports 8201, 8202 and 8303. We can define our cluster in NGINX with the following 'upstream' directive:
+Let's say we have three HelloWorld.js running on ports 8211, 8212 and 8313. We can define our cluster in NGINX with the following 'upstream' directive:
 
 ```sh
 
 upstream cluster {
         least_conn;
         keepalive 100;
-        server 127.0.0.1:8201;
-        server 127.0.0.1:8202;
-        server 127.0.0.1:8203;
+        server 127.0.0.1:8211;
+        server 127.0.0.1:8212;
+        server 127.0.0.1:8213;
 }
 ```
 
