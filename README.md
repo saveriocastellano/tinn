@@ -72,11 +72,15 @@ $ unzip master.zip
 Now from the v8 directory where d8 was built apply the patch with the following command:
 ```sh
 $ patch -p1 < ../../master/modules/build/libs/v8_7.9/d8_v7.9.patch 
+```
+```sh
+Now use the following command to add the '-rdynamic' link flag to the d8 makefile. This flag causes
+the d8 executable to export v8 symbols to the external modules that will be loaded dynamically by it:
+```
 $ sed -i 's/-lpthread\s-lrt/-lpthread -lrt -rdynamic/' out/x64.release/obj/d8.ninja
 ```
 
-
-And then build the modified d8 executable:
+Finally build the modified d8 executable (the following command only causes the file src/d8/d8.cc to be recompiled and then relinks the d8 executable):
 ```sh
 $ tools/dev/gm.py x64.release
 ```
