@@ -40,7 +40,7 @@ The first three steps are about building the modified d8 executable that is capa
 The reason why it is necessary to first build d8 and then apply the patch is because the TINN patch changes also one of the makefiles that is generated when building d8. The latest rebuild step is not a full rebuild as it only involes compiling one single source file and re-linking the d8 executable. 
 
 Depending on your machine, you might be able tp run this d8 binary which was built on Ubuntu 16.04.4 LTS x64 machine:
-https://github.com/saveriocastellano/tinn/releases/download/0.1.1/d8tinn_7.9.1_x64.tgz
+[d8tinn_7.9.1_x64.tgz](https://github.com/saveriocastellano/tinn/releases/download/0.1.1/d8tinn_7.9.1_x64.tgz)
 
 After uncompressing the file try running the d8 executable:
 ```sh
