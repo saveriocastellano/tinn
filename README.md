@@ -28,7 +28,7 @@ Currently the following native modules are available:
 * **JS**: provides support for creating isolated Javascript execution environments (through the d8 'Realm' class)
 
 
-## Build modified version of d8 shell ##
+## Build the modified version of d8 shell ##
 To use TINN you need to build a modified version of d8 (d8-TINN) which supports loading external native modules.
 
 Alternatively, depending on your machine, you might be able to run the following d8-TINN binary which was built on Ubuntu 16.04.4 LTS x64 machine:
