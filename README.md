@@ -28,24 +28,47 @@ Currently the following native modules are available:
 * **JS**: provides support for creating isolated Javascript execution environments (through the d8 'Realm' class)
 
 
-## Compile and Install
+## Compile and Install ##
+Setting up TINN involves the following steps:
 
+* download and build google-v8 engine the the d8 shell executable
+* apply the TINN patch to the d8 source files
+* rebuild d8
+* build the TINN native modules
+
+The reason why it is necessary to first build d8 and then apply the patch is because the TINN patch changes also one of the makefiles that is generated when building d8. The latest rebuild step is not a full rebuild as it only involes compiling one single source file and re-linking the d8 executable. 
+
+
+Download and build v8/d8:
 ```sh
 
-git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-export PATH=$PATH:`pwd`/depot_tools
-mkdir ~/v8
-cd ~/v8
-fetch v8
-cd v8
-gclient sync
-./build/install-build-deps.sh
-git checkout 7.9.1
-tools/dev/gm.py x64.release
+$ git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+$ export PATH=$PATH:`pwd`/depot_tools
+$ mkdir ~/v8
+$ cd ~/v8
+$ fetch v8
+$ cd v8
+$ gclient sync
+$ ./build/install-build-deps.sh
+$ git checkout 7.9.1
+$ tools/dev/gm.py x64.release
 
+```
+Download TINN:
 
+```sh
+$ wget https://github.com/saveriocastellano/tinn/archive/master.zip
+$ unzip master.zip
 
+```
+Now from the v8 directory where d8 was built apply the patch with the following command:
+```sh
+$ patch -p1 < ../../master/modules/build/libs/v8_7.9/d8_v7.9.patch 
+```
 
+And then build the modified d8 executable:
+```sh
+$ tools/dev/gm.py x64.release
 ```
 
 ## Web Application ##
