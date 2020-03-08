@@ -6,7 +6,7 @@ file in order to add to it the capability of dynamically loading external C++ mo
 
 Similarly to native modules in NodeJS, external modules are native shared libraries that provide additional functionalities that are exported to the Javascript context. 
 
-Applications based on TINN are entirely written in Javascript and run through the (modified) D8 shell. 
+Applications based on TINN are entirely written in Javascript and run in the (modified) D8 shell. 
 Support for threads is available through the 'Worker' Javascript class implemented in D8. 
 
 Just like NodeJS, TINN is based on the google-v8 engine and it provides a number of native modules each one in charge of implementing a specific functionality that is "exported" to the underlying Javascript context. From an architecture viewpoint instead, TINN is the opposite of NodeJS: in TINN input/output operations are blocking and applications run on multiple cores (Worker class), whereas NodeJS was born as a single-threaded async framework.
