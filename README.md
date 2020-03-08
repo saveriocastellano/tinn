@@ -93,7 +93,7 @@ $ wget https://github.com/saveriocastellano/tinn/archive/master.zip
 $ unzip master.zip
 
 ```
-Now you need to copy the d8 and snapshot_blob.bin binaries to the TINN directory (from the above steps you will have TINN under a directory called 'master').
+Now you need to copy the d8 and snapshot_blob.bin binaries to the TINN directory (you will have TINN in a directory called 'master' if you executed the last two commands).
 
 If you built the modified d8-TINN executable then you will have d8 and snapshot_blob.bin in 'out/x64.release'
 directory. From the v8 directory do:
