@@ -117,6 +117,10 @@ If you are on Debian/Ubuntu, you can install all needed libraries with this comm
 $ apt-get install libfcgi0ldbl libfcgi-dev libcurl4-gnutls-dev liblog4cxx-dev libevent1-dev libleveldb-dev 
 ````
 
+Once you have the modules built you can try running one of the example scripts:
+```sh
+$ ./d8 --snapshot_blob=snapshot_blob.bin examples/helloworld.js
+```
 
 ## Web Application ##
 This example shows how to write a simple web application that replies with "Hello World!" on any request.
