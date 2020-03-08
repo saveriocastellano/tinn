@@ -23,19 +23,19 @@ mod_hyperloglog: hyperloglog.cc
 	$(CC) $(CFLAGS) -I$(DIR)/../build/libs/cpp-HyperLogLog/include hyperloglog.cc -o ../mod_hyperloglog.so
 
 mod_log: log.cc
-	$(CC) $(CFLAGS) log.cc -llog4cxx -o ../mod_log.so
+	$(CC) $(CFLAGS) log.cc -o ../mod_log.so -llog4cxx 
 	
 mod_os: os.cc
 	$(CC) $(CFLAGS) os.cc -o ../mod_os.so
 
 mod_http: http.cc
-	$(CC) $(CFLAGS) -lfcgi++ -lfcgi -lcurl http.cc $(DIR)/libs/sds.c -o ../mod_http.so
+	$(CC) $(CFLAGS) http.cc $(DIR)/libs/sds.c -o ../mod_http.so -lfcgi++ -lfcgi -lcurl 
 	
 mod_hiredis: hiredis hiredis.cc 
 	$(CC) $(CFLAGS) -I$(HIREDIS_HOME) -I$(DIR)/libs -I $(HIREDIS_CPP_CLUSTER_HOME)/include -L$(HIREDIS_HOME) -I$(HIREDIS_HOME)/redis-client hiredis.cc $(DIR)/libs/sds.c $(HIREDIS_HOME)/libhiredis.a -o ../mod_hiredis.so
 
 mod_hiredis_cluster: hiredis hiredis_cluster.cc
-	$(CC) $(CFLAGS) -I$(HIREDIS_HOME) -I$(DIR)/libs -I $(HIREDIS_CPP_CLUSTER_HOME)/include -L$(HIREDIS_HOME) -levent hiredis_cluster.cc $(HIREDIS_HOME)/libhiredis.a -o ../mod_hiredis_cluster.so
+	$(CC) $(CFLAGS) -I$(HIREDIS_HOME) -I$(DIR)/libs -I $(HIREDIS_CPP_CLUSTER_HOME)/include -L$(HIREDIS_HOME) hiredis_cluster.cc $(HIREDIS_HOME)/libhiredis.a -o ../mod_hiredis_cluster.so -levent 
 
 mod_ssdb: ssdb.cc 
 	$(CC) $(CFLAGS) -I$(HIREDIS_HOME) -I$(SSDB_HOME)/src -I$(SSDB_HOME)/src/client -I$(DIR)/libs $(DIR)/libs/sds.c ssdb.cc $(SSDB_HOME)/src/util/bytes.cpp $(SSDB_HOME)/src/net/link.cpp $(SSDB_HOME)/src/client/SSDB_impl.cpp -o ../mod_ssdb.so

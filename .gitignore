@@ -1,0 +1,4 @@
+*.so.*
+*.so
+d8
+snapshot_blob.bin
