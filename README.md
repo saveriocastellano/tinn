@@ -98,14 +98,24 @@ If you built the modified d8-TINN executable then you will have d8 and snapshot_
 directory. 
 
 Next step is to build the TINN modules. You can choose whether to build all modules or just some of them. Once built the modules
-will me under 'modules/' directory and they will be loaded automatically by d8. 
+will be under 'modules/' directory and they will be loaded automatically by d8. 
 To build all modules just run 'make' in the 'modules/build' directory. From the TINN root directory do:
 
 ```sh
 $ cd modules\build
 $ make
 ```
+To build just one module do 'make mod_name' where name is the name of the module you want to build. For instance to build only the HTTP module do:
+```sh
+$ make mod_http
+```
+Some modules rely on external libraries that must be available on the system when building the module. For instance, the HTTP module depends on CUrl and FCGI++ libraries. To build all modules you need the following libraries: CUrl, FCGI++, libEvent, log4cxx, leveldb.
 
+If you are on Debian/Ubuntu, you can install all needed libraries with this command:
+```sh
+
+$ apt-get install libfcgi0ldbl libfcgi-dev libcurl4-gnutls-dev liblog4cxx-dev libevent1-dev libleveldb-dev 
+````
 
 
 ## Web Application ##
