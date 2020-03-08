@@ -81,6 +81,7 @@ $ sed -i 's/-lpthread\s-lrt/-lpthread -lrt -rdynamic/' out/x64.release/obj/d8.ni
 
 Finally, build the modified d8 executable (the following command only causes the file src/d8/d8.cc to be recompiled and then relinks the d8 executable):
 ```sh
+$ echo v8_use_snapshot = false >> ./out/x64.release/args.gn
 $ tools/dev/gm.py x64.release
 ```
 
