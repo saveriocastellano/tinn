@@ -72,7 +72,9 @@ $ unzip master.zip
 Now from the v8 directory where d8 was built apply the patch with the following command:
 ```sh
 $ patch -p1 < ../../master/modules/build/libs/v8_7.9/d8_v7.9.patch 
+$ sed -i 's/-lpthread\s-lrt/-lpthread -lrt -rdynamic/' out/x64.release/obj/d8.ninja
 ```
+
 
 And then build the modified d8 executable:
 ```sh
