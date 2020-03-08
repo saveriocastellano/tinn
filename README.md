@@ -28,18 +28,26 @@ Currently the following native modules are available:
 * **JS**: provides support for creating isolated Javascript execution environments (through the d8 'Realm' class)
 
 
-## Compile and Install ##
-Setting up TINN involves the following steps:
+## Build the modified version of d8 shell ##
+To use TINN you need to build a modified version of d8 (d8-TINN) which supports loading external native modules.
+
+Alternatively, depending on your machine, you might be able to run the following d8-TINN binary which was built on Ubuntu 16.04.4 LTS x64 machine:
+
+[  d8tinn_7.9.1_x64.tgz](https://github.com/saveriocastellano/tinn/releases/download/0.1.1/d8tinn_7.9.1_x64.tgz)
+
+After uncompressing the above package try running the d8 executable:
+
+```sh
+  $ ./d8 --snapshot_blob=snapshot_blob.bin
+```
+If the above didn't work for you then you can build the d8-TINN executable by following the following steps:
 
 * download and build google-v8 engine the the d8 shell executable
 * apply the TINN patch to the d8 source files
 * rebuild d8
 * build the TINN native modules
 
-The reason why it is necessary to first build d8 and then apply the patch is because the TINN patch changes also one of the makefiles that is generated when building d8. The latest rebuild step is not a full rebuild as it only involes compiling one single source file and re-linking the d8 executable. 
-
-
-Download and build v8/d8:
+Follow these steps to download and build d8 (these steps are taken directly from google-v8 docs at https://v8.dev/docs/build):
 ```sh
 
 $ git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
@@ -65,10 +73,53 @@ Now from the v8 directory where d8 was built apply the patch with the following 
 ```sh
 $ patch -p1 < ../../master/modules/build/libs/v8_7.9/d8_v7.9.patch 
 ```
+Now use the following command to add the '-rdynamic' link flag to the d8 makefile. This flag causes
+the d8 executable to export v8 symbols when dynamically loading external modules:
+```sh
+$ sed -i 's/-lpthread\s-lrt/-lpthread -lrt -rdynamic/' out/x64.release/obj/d8.ninja
+```
 
-And then build the modified d8 executable:
+Finally, build the modified d8 executable (the following command only causes the file src/d8/d8.cc to be recompiled and then relinks the d8 executable):
 ```sh
 $ tools/dev/gm.py x64.release
+```
+
+## Download and setup TINN ##
+
+Download TINN:
+
+```sh
+$ wget https://github.com/saveriocastellano/tinn/archive/master.zip
+$ unzip master.zip
+```
+Now you need to copy the d8 and snapshot_blob.bin binaries to the TINN directory (you will have TINN in a directory called 'master' if you executed the last two commands).
+
+If you built the modified d8-TINN executable then you will have d8 and snapshot_blob.bin in 'out/x64.release'
+directory. 
+
+Next step is to build the TINN modules. You can choose whether to build all modules or just some of them. Once built the modules
+will be under 'modules/' directory and they will be loaded automatically by d8. 
+To build all modules just run 'make' in the 'modules/build' directory. From the TINN root directory do:
+
+```sh
+$ cd modules\build
+$ make
+```
+To build just one module do 'make mod_name' where name is the name of the module you want to build. For instance to build only the HTTP module do:
+```sh
+$ make mod_http
+```
+Some modules rely on external libraries that must be available on the system when building the module. For instance, the HTTP module depends on CUrl and FCGI++ libraries. To build all modules you need the following libraries: CUrl, FCGI++, libEvent, log4cxx, leveldb.
+
+If you are on Debian/Ubuntu, you can install all needed libraries with this command:
+```sh
+
+$ apt-get install libfcgi0ldbl libfcgi-dev libcurl4-gnutls-dev liblog4cxx-dev libevent1-dev libleveldb-dev 
+````
+
+Once you have the modules built you can try running one of the example scripts:
+```sh
+$ ./d8 --snapshot_blob=snapshot_blob.bin examples/helloworld.js
 ```
 
 ## Web Application ##
@@ -77,14 +128,16 @@ This example shows how to write a simple web application that replies with "Hell
 Because Web Application support in TINN is based on FCGI++, in order to implement a web application it is necessary to use 
 a FCGI-capable Web Server like NGINX or Apache acting as a HTTP frontend. 
 
-The following defines a script called HelloWorld.js that sets up a FCGI server on 8200 that replies with 'Hello World' to every request: 
+The following defines a script called helloworld.js that sets up a FCGI server on 8200 that replies with 'Hello World' to every request: 
 
 ```sh
 
-var sockAddr = '127.0.0.1:8200'
+var sockAddr = '127.0.0.1:8210'
 Http.openSocket(sockAddr);
 
 print("Server listening on: " + sockAddr);
+
+Http.init();
 
 while(true) {
         Http.accept();
@@ -102,7 +155,7 @@ Next thing to do is to define a location in NGINX configuration file that forwar
 ```sh
 
 location / {
-	fastcgi_pass 127.0.0.1:8201;
+	fastcgi_pass 127.0.0.1:8211;
 	fastcgi_read_timeout 255;
         fastcgi_param  GATEWAY_INTERFACE  CGI/1.1;
 	fastcgi_param  SERVER_SOFTWARE    nginx;
@@ -128,7 +181,7 @@ location / {
 Now we can run the web application by doing:
 
 ```sh
-$ ./d8 --snapshot_blob=snapshot_blob.bin HelloWorld.js
+$ ./d8 --snapshot_blob=snapshot_blob.bin helloworld.js
 ```
 And if NGINX is running on port 80 on the same machine we can send a request to our Web Application by doing:
 ```sh
@@ -139,12 +192,12 @@ $ curl http://127.0.0.1/
 
 Let's see how we can modify the previous example in order to run our Web Application on multiple threads.
 
-Basically this is just a matter of splitting HelloWorld.js in two parts: the first part main.js sets up the FCGI server and creates the worker threads, and the second part worker.js is the code of the worker threads that is in charge of processing the requests.
+Basically this is just a matter of splitting helloworld.js in two parts: the first part main.js sets up the FCGI server and creates the worker threads, and the second part worker.js is the code of the worker threads that is in charge of processing the requests.
 
 main.js
 ```sh
 
-var sockAddr = '127.0.0.1:8200'
+var sockAddr = '127.0.0.1:8210'
 Http.openSocket(sockAddr);
 
 print("Server listening on: " + sockAddr);
@@ -159,6 +212,7 @@ for(var i=0; i<threads; i++) {
 
 worker.js
 ```sh
+Http.init();
 
 while(true) {
         Http.accept();
@@ -178,18 +232,18 @@ $ ./d8 --snapshot_blob=snapshot_blob.bin main.js
 ```
 
 ## Clustered Web Application ##
-A clustered Web Application can be easily created by running several TINN processes (like the HelloWorld.js example above) on different machines (or different ports of the same machine) and then defining a cluster in the NGINX configuration file through the 'upstream' directive.
+A clustered Web Application can be easily created by running several TINN processes (like the helloworld.js example above) on different machines (or different ports of the same machine) and then defining a cluster in the NGINX configuration file through the 'upstream' directive.
 
-Let's say we have three HelloWorld.js running on ports 8201, 8202 and 8303. We can define our cluster in NGINX with the following 'upstream' directive:
+Let's say we have three HelloWorld.js running on ports 8211, 8212 and 8313. We can define our cluster in NGINX with the following 'upstream' directive:
 
 ```sh
 
 upstream cluster {
         least_conn;
         keepalive 100;
-        server 127.0.0.1:8201;
-        server 127.0.0.1:8202;
-        server 127.0.0.1:8203;
+        server 127.0.0.1:8211;
+        server 127.0.0.1:8212;
+        server 127.0.0.1:8213;
 }
 ```
 
