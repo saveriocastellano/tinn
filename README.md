@@ -52,8 +52,7 @@ If you get a valid shell prompt then you don't need to build d8 and you can jump
 the TINN modules.
 
 
-
-Download and build v8/d8:
+If instead the above didn't work for you then download and build v8/d8:
 ```sh
 
 $ git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
