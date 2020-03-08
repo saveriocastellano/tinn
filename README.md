@@ -79,7 +79,7 @@ the d8 executable to export v8 symbols when dynamically loading external modules
 $ sed -i 's/-lpthread\s-lrt/-lpthread -lrt -rdynamic/' out/x64.release/obj/d8.ninja
 ```
 
-Finally build the modified d8 executable (the following command only causes the file src/d8/d8.cc to be recompiled and then relinks the d8 executable):
+Finally, build the modified d8 executable (the following command only causes the file src/d8/d8.cc to be recompiled and then relinks the d8 executable):
 ```sh
 $ tools/dev/gm.py x64.release
 ```
