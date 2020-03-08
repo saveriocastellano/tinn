@@ -84,6 +84,24 @@ Finally, build the modified d8 executable (the following command only causes the
 $ tools/dev/gm.py x64.release
 ```
 
+## Download and setup TINN ##
+
+Download TINN:
+
+```sh
+$ wget https://github.com/saveriocastellano/tinn/archive/master.zip
+$ unzip master.zip
+
+```
+Now you need to copy the d8 and snapshot_blob.bin binaries to the TINN directory.
+If you built the modified d8-TINN executable then you will have d8 and snapshot_blob.bin in 'out/x64.release'
+directory. From the v8 directory do:
+```sh
+$ cp out/x64.release/d8 ../../master/
+$ cp out/x64.release/snapshot_blob.bin ../../master/
+```
+
+
 ## Web Application ##
 This example shows how to write a simple web application that replies with "Hello World!" on any request.
 
