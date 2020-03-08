@@ -91,16 +91,21 @@ Download TINN:
 ```sh
 $ wget https://github.com/saveriocastellano/tinn/archive/master.zip
 $ unzip master.zip
-
 ```
 Now you need to copy the d8 and snapshot_blob.bin binaries to the TINN directory (you will have TINN in a directory called 'master' if you executed the last two commands).
 
 If you built the modified d8-TINN executable then you will have d8 and snapshot_blob.bin in 'out/x64.release'
-directory. From the v8 directory do:
+directory. 
+
+Next step is to build the TINN modules. You can choose whether to build all modules or just some of them. Once built the modules
+will me under 'modules/' directory and they will be loaded automatically by d8. 
+To build all modules just run 'make' in the 'modules/build' directory. From the TINN root directory do:
+
 ```sh
-$ cp out/x64.release/d8 ../../master/
-$ cp out/x64.release/snapshot_blob.bin ../../master/
+$ cd modules\build
+$ make
 ```
+
 
 
 ## Web Application ##
