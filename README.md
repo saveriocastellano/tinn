@@ -155,7 +155,7 @@ Next thing to do is to define a location in NGINX configuration file that forwar
 ```sh
 
 location / {
-	fastcgi_pass 127.0.0.1:8211;
+	fastcgi_pass 127.0.0.1:8210;
 	fastcgi_read_timeout 255;
         fastcgi_param  GATEWAY_INTERFACE  CGI/1.1;
 	fastcgi_param  SERVER_SOFTWARE    nginx;
