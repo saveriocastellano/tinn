@@ -28,18 +28,10 @@ Currently the following native modules are available:
 * **JS**: provides support for creating isolated Javascript execution environments (through the d8 'Realm' class)
 
 
-## Compile and Install ##
-Setting up TINN involves the following steps:
+## Build modified version of d8 shell ##
+To use TINN you need to build a modified version of d8 (d8-TINN) which supports loading external native modules.
 
-* download and build google-v8 engine the the d8 shell executable
-* apply the TINN patch to the d8 source files
-* rebuild d8
-* build the TINN native modules
-
-The first three steps are about building the modified d8 executable that is capable of loading external modules.
-The reason why it is necessary to first build d8 and then apply the patch is because the TINN patch changes also one of the makefiles that is generated when building d8. The latest rebuild step is not a full rebuild as it only involes compiling one single source file and re-linking the d8 executable. 
-
-Depending on your machine, you might be able tp run this d8 binary which was built on Ubuntu 16.04.4 LTS x64 machine:
+Alternatively, depending on your machine, you might be able to run the following d8-TINN binary which was built on Ubuntu 16.04.4 LTS x64 machine:
 
 [  d8tinn_7.9.1_x64.tgz](https://github.com/saveriocastellano/tinn/releases/download/0.1.1/d8tinn_7.9.1_x64.tgz)
 
@@ -48,12 +40,14 @@ After uncompressing the above package try running the d8 executable:
 ```sh
   $ ./d8 --snapshot_blob=snapshot_blob.bin
 ```
+If the above didn't work for you then you can build the d8-TINN executable by following the following steps:
 
-If you get a valid shell prompt then you don't need to build d8 and you can jump to the last step which is about building
-the TINN modules.
+* download and build google-v8 engine the the d8 shell executable
+* apply the TINN patch to the d8 source files
+* rebuild d8
+* build the TINN native modules
 
-
-If instead the above didn't work for you then download and build v8/d8:
+Follow these steps to download and build d8 (these steps are taken directly from google-v8 docs at https://v8.dev/docs/build):
 ```sh
 
 $ git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
