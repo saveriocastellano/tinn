@@ -37,7 +37,7 @@ $ unzip master.zip
 $ cd master
 $ wget https://github.com/saveriocastellano/tinn/releases/download/0.1.1/d8
 ```
-Before continuing, make sure that the d8 executable can run on your machine:
+Before continuing, make sure that the d8 executable can run on your machine (x64 machines only):
 ```sh
 $ ./d8
 ```
