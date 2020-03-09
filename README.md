@@ -37,11 +37,11 @@ $ unzip master.zip
 $ cd master
 $ wget https://github.com/saveriocastellano/tinn/releases/download/0.1.1/d8
 ```
-
-Now you need to copy the d8 binary to the TINN directory (you will have TINN in a directory called 'master' if you executed the last two commands).
-
-If you built the modified d8-TINN executable then you will have d8 in 'out/x64.release'
-directory. 
+Before continuing, make sure that the d8 executable can run on your machine:
+```sh
+$ ./d8
+```
+If you get a valid shell prompt then it means that d8 is working. In any other case you need to refer to the next section to build the modified version of the d8 exeutable.
 
 Next step is to build the TINN modules. You can choose whether to build all modules or just some of them. Once built the modules
 will be under 'modules/' directory and they will be loaded automatically by d8. 
@@ -94,7 +94,7 @@ $ tools/dev/gm.py x64.release
 ```
 Now assuming you have donwload TINN and uncompressed it in '~/master/' apply the patch with the following command:
 ```sh
-$ patch -p1 < ~/master/modules/build/libs/v8_7.9/d8_v7.9.patch 
+$ patch -p1 < ~/tinn-master/modules/build/libs/v8_7.9/d8_v7.9.patch 
 ```
 Now use the following command to add the '-rdynamic' link flag to the d8 makefile. This flag causes
 the d8 executable to export v8 symbols when dynamically loading external modules:
