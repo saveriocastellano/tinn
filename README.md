@@ -35,7 +35,7 @@ Use the following commands to download TINN and the modified d8 executable:
 $ wget https://github.com/saveriocastellano/tinn/archive/master.zip
 $ unzip master.zip
 $ cd master
-$ wget https://github.com/saveriocastellano/tinn/releases/download/untagged-f3b3454e4ea1ded74fa6/d8
+$ wget https://github.com/saveriocastellano/tinn/releases/download/0.1.1/d8
 ```
 
 Now you need to copy the d8 binary to the TINN directory (you will have TINN in a directory called 'master' if you executed the last two commands).
