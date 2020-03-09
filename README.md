@@ -73,8 +73,9 @@ $ ./d8 examples/helloworld.js
 ```
 
 ## Build the modified version of d8 shell ##
-To use TINN you need to have a modified version of the d8 executable which supports loading external native modules.
-These are the steps to follow:
+Only read this section if the provided d8 executable (see previous section) does not work on your machine.
+
+Follow these steps to build the modified version of the d8 executable which supports loading external native modules:
 
 * download and build google-v8 engine the the d8 shell executable
 * apply the TINN patch to the d8 source files
