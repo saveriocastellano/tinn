@@ -87,8 +87,10 @@ $ cd ~/v8
 $ fetch v8
 $ cd v8
 $ gclient sync
+$ git checkout 7.9.2
 $ ./build/install-build-deps.sh
-$ git checkout 7.9.1
+$ gn gen out.gn/x64.release
+$ echo v8_use_snapshot = false >> ./out/x64.release/args.gn
 $ tools/dev/gm.py x64.release
 
 ```
@@ -104,7 +106,6 @@ $ sed -i 's/-lpthread\s-lrt/-lpthread -lrt -rdynamic/' out/x64.release/obj/d8.ni
 
 Finally, build the modified d8 executable (the following command only causes the file src/d8/d8.cc to be recompiled and then relinks the d8 executable):
 ```sh
-$ echo v8_use_snapshot = false >> ./out/x64.release/args.gn
 $ tools/dev/gm.py x64.release
 ```
 
