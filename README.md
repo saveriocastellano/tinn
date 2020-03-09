@@ -45,7 +45,10 @@ If you get a valid shell prompt then it means that d8 is working. In any other c
 
 Next step is to build the TINN modules. You can choose whether to build all modules or just some of them. Once built the modules
 will be under 'modules/' directory and they will be loaded automatically by d8. 
-Some modules rely on external libraries that must be available on the system when building the module. For instance, the HTTP module depends on CUrl and FCGI++ libraries. To build all modules you need the following libraries: CUrl, FCGI++, libEvent, log4cxx, leveldb.
+
+Some modules rely on external libraries that must be available on the system when building the module. For instance, the HTTP module depends on CUrl and FCGI++ libraries. 
+
+To build all modules you need the following libraries: CUrl, FCGI++, libEvent, log4cxx, leveldb.
 
 If you are on Debian/Ubuntu, you can install all needed libraries with this command:
 ```sh
@@ -95,7 +98,7 @@ $ echo v8_use_snapshot = false >> ./out/x64.release/args.gn
 $ tools/dev/gm.py x64.release
 
 ```
-Now assuming you have donwload TINN and uncompressed it in '~/master/' apply the patch with the following command:
+Now assuming you have donwloaded TINN and uncompressed it in '~/master/' apply the patch with the following command:
 ```sh
 $ patch -p1 < ~/tinn-master/modules/build/libs/v8_7.9/d8_v7.9.patch 
 ```
