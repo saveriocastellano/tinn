@@ -140,7 +140,7 @@ while(true) {
 
 ```
 
-Next thing to do is to define a location in NGINX configuration file that forwards all incoming HTTP requests to our TINN web application (note the 'fastcgi_pass' directive pointing to the ip and port of our example server):
+Next thing to do is to define a location in NGINX configuration file that forwards all incoming HTTP requests to our TINN web application. Here is how a complete nginx.conf file would look like (note the 'fastcgi_pass' directive pointing to the ip and port of our example server):
 
 ```sh
 
@@ -173,7 +173,6 @@ http {
 }
 
 ```
-**NB**: don't forget that in NGINX 'location' directives must be placed inside 'server'
 
 Now we can run the web application by doing:
 
