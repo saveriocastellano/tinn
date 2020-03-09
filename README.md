@@ -38,7 +38,7 @@ Alternatively, depending on your machine, you might be able to run the following
 After uncompressing the above package try running the d8 executable:
 
 ```sh
-  $ ./d8 --snapshot_blob=snapshot_blob.bin
+  $ ./d8 
 ```
 If the above didn't work for you then you can build the d8-TINN executable by following the following steps:
 
@@ -93,9 +93,9 @@ Download TINN:
 $ wget https://github.com/saveriocastellano/tinn/archive/master.zip
 $ unzip master.zip
 ```
-Now you need to copy the d8 and snapshot_blob.bin binaries to the TINN directory (you will have TINN in a directory called 'master' if you executed the last two commands).
+Now you need to copy the d8 binary to the TINN directory (you will have TINN in a directory called 'master' if you executed the last two commands).
 
-If you built the modified d8-TINN executable then you will have d8 and snapshot_blob.bin in 'out/x64.release'
+If you built the modified d8-TINN executable then you will have d8 in 'out/x64.release'
 directory. 
 
 Next step is to build the TINN modules. You can choose whether to build all modules or just some of them. Once built the modules
@@ -120,7 +120,7 @@ $ apt-get install libfcgi0ldbl libfcgi-dev libcurl4-gnutls-dev liblog4cxx-dev li
 
 Once you have the modules built you can try running one of the example scripts:
 ```sh
-$ ./d8 --snapshot_blob=snapshot_blob.bin examples/helloworld.js
+$ ./d8 examples/helloworld.js
 ```
 
 ## Web Application ##
@@ -182,7 +182,7 @@ location / {
 Now we can run the web application by doing:
 
 ```sh
-$ ./d8 --snapshot_blob=snapshot_blob.bin helloworld.js
+$ ./d8 helloworld.js
 ```
 And if NGINX is running on port 80 on the same machine we can send a request to our Web Application by doing:
 ```sh
@@ -229,7 +229,7 @@ while(true) {
 And then run the web application with:
 
 ```sh
-$ ./d8 --snapshot_blob=snapshot_blob.bin main.js
+$ ./d8 main.js
 ```
 
 ## Clustered Web Application ##
