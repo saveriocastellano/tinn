@@ -94,8 +94,6 @@ $ cd v8
 $ gclient sync
 $ git checkout 7.9.2
 $ ./build/install-build-deps.sh
-$ gn gen out.gn/x64.release
-$ echo v8_use_snapshot = false >> ./out/x64.release/args.gn
 $ tools/dev/gm.py x64.release
 
 ```
