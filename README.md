@@ -27,72 +27,17 @@ Currently the following native modules are available:
 * **HyperLogLog**: implements the HyperLogLog algorithm
 * **JS**: provides support for creating isolated Javascript execution environments (through the d8 'Realm' class)
 
-
-## Build the modified version of d8 shell ##
-To use TINN you need to build a modified version of d8 (d8-TINN) which supports loading external native modules.
-
-Alternatively, depending on your machine, you might be able to run the following d8-TINN binary which was built on Ubuntu 16.04.4 LTS x64 machine:
-
-[  d8tinn_7.9.1_x64.tgz](https://github.com/saveriocastellano/tinn/releases/download/0.1.1/d8tinn_7.9.1_x64.tgz)
-
-After uncompressing the above package try running the d8 executable:
-
-```sh
-  $ ./d8 
-```
-If the above didn't work for you then you can build the d8-TINN executable by following the following steps:
-
-* download and build google-v8 engine the the d8 shell executable
-* apply the TINN patch to the d8 source files
-* rebuild d8
-* build the TINN native modules
-
-Follow these steps to download and build d8 (these steps are taken directly from google-v8 docs at https://v8.dev/docs/build):
-```sh
-
-$ git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-$ export PATH=$PATH:`pwd`/depot_tools
-$ mkdir ~/v8
-$ cd ~/v8
-$ fetch v8
-$ cd v8
-$ gclient sync
-$ ./build/install-build-deps.sh
-$ git checkout 7.9.1
-$ tools/dev/gm.py x64.release
-
-```
-Download TINN:
-
-```sh
-$ wget https://github.com/saveriocastellano/tinn/archive/master.zip
-$ unzip master.zip
-
-```
-Now from the v8 directory where d8 was built apply the patch with the following command:
-```sh
-$ patch -p1 < ../../master/modules/build/libs/v8_7.9/d8_v7.9.patch 
-```
-Now use the following command to add the '-rdynamic' link flag to the d8 makefile. This flag causes
-the d8 executable to export v8 symbols when dynamically loading external modules:
-```sh
-$ sed -i 's/-lpthread\s-lrt/-lpthread -lrt -rdynamic/' out/x64.release/obj/d8.ninja
-```
-
-Finally, build the modified d8 executable (the following command only causes the file src/d8/d8.cc to be recompiled and then relinks the d8 executable):
-```sh
-$ echo v8_use_snapshot = false >> ./out/x64.release/args.gn
-$ tools/dev/gm.py x64.release
-```
-
 ## Download and setup TINN ##
 
-Download TINN:
+Use the following commands to download TINN and the modified d8 executable:
 
 ```sh
 $ wget https://github.com/saveriocastellano/tinn/archive/master.zip
 $ unzip master.zip
+$ cd master
+$ wget https://github.com/saveriocastellano/tinn/releases/download/untagged-f3b3454e4ea1ded74fa6/d8
 ```
+
 Now you need to copy the d8 binary to the TINN directory (you will have TINN in a directory called 'master' if you executed the last two commands).
 
 If you built the modified d8-TINN executable then you will have d8 in 'out/x64.release'
@@ -121,6 +66,46 @@ $ apt-get install libfcgi0ldbl libfcgi-dev libcurl4-gnutls-dev liblog4cxx-dev li
 Once you have the modules built you can try running one of the example scripts:
 ```sh
 $ ./d8 examples/helloworld.js
+```
+
+## Build the modified version of d8 shell ##
+To use TINN you need to have a modified version of the d8 executable which supports loading external native modules.
+These are the steps to follow:
+
+* download and build google-v8 engine the the d8 shell executable
+* apply the TINN patch to the d8 source files
+* rebuild d8
+* build the TINN native modules
+
+Use the commands below to download and build d8 (these steps are taken directly from google-v8 docs at https://v8.dev/docs/build):
+```sh
+
+$ git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+$ export PATH=$PATH:`pwd`/depot_tools
+$ mkdir ~/v8
+$ cd ~/v8
+$ fetch v8
+$ cd v8
+$ gclient sync
+$ ./build/install-build-deps.sh
+$ git checkout 7.9.1
+$ tools/dev/gm.py x64.release
+
+```
+Now assuming you have donwload TINN and uncompressed it in '~/master/' apply the patch with the following command:
+```sh
+$ patch -p1 < ~/master/modules/build/libs/v8_7.9/d8_v7.9.patch 
+```
+Now use the following command to add the '-rdynamic' link flag to the d8 makefile. This flag causes
+the d8 executable to export v8 symbols when dynamically loading external modules:
+```sh
+$ sed -i 's/-lpthread\s-lrt/-lpthread -lrt -rdynamic/' out/x64.release/obj/d8.ninja
+```
+
+Finally, build the modified d8 executable (the following command only causes the file src/d8/d8.cc to be recompiled and then relinks the d8 executable):
+```sh
+$ echo v8_use_snapshot = false >> ./out/x64.release/args.gn
+$ tools/dev/gm.py x64.release
 ```
 
 ## Web Application ##
