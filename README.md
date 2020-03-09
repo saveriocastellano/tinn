@@ -232,37 +232,46 @@ $ ./d8 main.js
 ## Clustered Web Application ##
 A clustered Web Application can be easily created by running several TINN processes (like the helloworld.js example above) on different machines (or different ports of the same machine) and then defining a cluster in the NGINX configuration file through the 'upstream' directive.
 
-Let's say we have three HelloWorld.js running on ports 8211, 8212 and 8313. We can define our cluster in NGINX with the following 'upstream' directive:
+Let's say we have three HelloWorld.js running on ports 8211, 8212 and 8313. We can define our cluster in NGINX configuration using the 'upstream' directive and then direct the traffic to all nodes in the cluster:
 
 ```sh
+events {}
 
-upstream cluster {
+http {
+   upstream cluster_nodes {
         least_conn;
         keepalive 100;
         server 127.0.0.1:8211;
         server 127.0.0.1:8212;
         server 127.0.0.1:8213;
+   }
+   map $host $cluster {
+        default cluster_nodes;
+   }
+
+   server {
+     location / {
+        fastcgi_pass $cluster;
+        fastcgi_read_timeout 255;
+        fastcgi_param  GATEWAY_INTERFACE  CGI/1.1;
+        fastcgi_param  SERVER_SOFTWARE    nginx;
+        fastcgi_param  QUERY_STRING       $query_string;
+        fastcgi_param  REQUEST_METHOD     $request_method;
+        fastcgi_param  CONTENT_TYPE       $content_type;
+        fastcgi_param  CONTENT_LENGTH     $content_length;
+        fastcgi_param  SCRIPT_FILENAME    $document_root$fastcgi_script_name;
+        fastcgi_param  SCRIPT_NAME        $fastcgi_script_name;
+        fastcgi_param  REQUEST_URI        $request_uri;
+        fastcgi_param  DOCUMENT_URI       $document_uri;
+        fastcgi_param  DOCUMENT_ROOT      $document_root;
+        fastcgi_param  SERVER_PROTOCOL    $server_protocol;
+        fastcgi_param  REMOTE_ADDR        $remote_addr;
+        fastcgi_param  REMOTE_PORT        $remote_port;
+        fastcgi_param  SERVER_ADDR        $server_addr;
+        fastcgi_param  SERVER_PORT        $server_port;
+        fastcgi_param  SERVER_NAME        $server_name;
+    }
+  }
 }
-```
 
-Then inside the 'server' section we define the 'location' as usual but this time the 'fastcgi_pass' directive points to our cluster instead of pointing to a specific ip and port:
-
-```sh
-location / {
-	fastcgi_read_timeout 255;
-	fastcgi_pass $cluster;
-
-	fastcgi_param  QUERY_STRING       $query_string;
-	fastcgi_param  REQUEST_METHOD     $request_method;
-	fastcgi_param  CONTENT_TYPE       $content_type;
-	fastcgi_param  CONTENT_LENGTH     $content_length;
-	fastcgi_param  SCRIPT_NAME        $fastcgi_script_name;
-	fastcgi_param  REQUEST_URI        $request_uri;
-	fastcgi_param  SERVER_PROTOCOL    $server_protocol;
-	fastcgi_param  REMOTE_ADDR        $remote_addr;
-	fastcgi_param  REMOTE_PORT        $remote_port;
-	fastcgi_param  SERVER_ADDR        $server_addr;
-	fastcgi_param  SERVER_PORT        $server_port;
-	fastcgi_param  SERVER_NAME        $server_name;
-}
 ```
