@@ -11,9 +11,15 @@ found in the LICENSE file.
 #include <string.h>
 #include <sstream>
 #include <map>
-
+#include <time.h>
 
 #include "v8adapt.h"
+
+#if defined(_WIN32)
+  #define LIBRARY_API __declspec(dllexport)
+#else
+  #define LIBRARY_API
+#endif
 
 
 using namespace std;
@@ -32,10 +38,14 @@ typedef struct {
 
 
 std::string Basename(const std::string& filename) {
+#ifdef _WIN32
+  return filename.substr(0, filename.find_last_of("/\\"));
+#else	
   char copy[filename.size() + 1];
   memcpy(copy, filename.data(), filename.size());
   copy[filename.size()] = 0;
   return std::string(basename(copy));
+#endif   
 }
 
 JsContext* GetJsContextFromInternalField(Isolate* isolate, Local<Object> object) {
@@ -176,7 +186,7 @@ void ReportException(Isolate* isolate, v8::TryCatch* try_catch) {
 }
 
 
-extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
+extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
 {
 	Handle<ObjectTemplate> js = ObjectTemplate::New(isolate);
 	
@@ -188,8 +198,7 @@ extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template)
 
 }
 
-extern "C" bool init() 
+extern "C" bool LIBRARY_API init() 
 {
 	return true;
 }
-
