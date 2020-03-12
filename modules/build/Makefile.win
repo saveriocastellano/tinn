@@ -1,0 +1,30 @@
+CC="C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\vc\Tools\Llvm\bin\clang++.exe"
+
+V8_VERSION=7.9.2 
+CURL_VERSION=7.65.2
+FCGI_VERSION=2.4.1
+
+CFLAGS=-m64 -g -Wall -Wextra -Ilibs\v8_$(V8_VERSION) -Ilibs -Ilibs\include -Iincludes
+LDFLAGS=-Llibs\win\x64\v8_$(V8_VERSION) -lv8.dll -lv8_libplatform.dll
+ 
+
+all: javascript http cleanup
+ 
+mod_javascript: javascript cleanup
+mod_http: http cleanup
+
+javascript: javascript.cc
+    $(CC) $(CFLAGS) javascript.cc -shared -o..\mod_javascript.dll $(LDFLAGS)
+
+http: http.cc
+    $(CC) $(CFLAGS) -Ilibs\win\x64\fcgi_$(FCGI_VERSION)\include -Ilibs\win\x64\curl_$(CURL_VERSION)\include -I\include libs\sds.c http.cc -shared -o..\mod_http.dll $(LDFLAGS) -Llibs\win\x64\fcgi_$(FCGI_VERSION)\lib -llibfcgi -Llibs\win\x64\curl_$(CURL_VERSION)\lib -llibcurl
+
+cleanup: 
+	del /Q ..\mod*.ilk
+	del /Q ..\mod*.lib
+	del /Q ..\mod*.pdb
+	del /Q ..\mod*.exp
+
+clean:
+	del /Q ..\*.*
+	

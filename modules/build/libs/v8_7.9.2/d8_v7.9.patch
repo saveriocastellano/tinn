@@ -1,0 +1,163 @@
+--- ./src/d8/d8.cc	2019-10-08 13:30:00.778324956 +0000
++++ /home/saverio/v8_modified/d8.cc	2019-10-08 13:14:47.181414867 +0000
+@@ -76,6 +76,138 @@
+     if (i::FLAG_trace_backing_store) PrintF(__VA_ARGS__); \
+   } while (false)
+ 
++
++
++//saverio
++#include <dlfcn.h>
++#include <vector>
++#include <sys/auxv.h>
++#include <dirent.h>
++
++typedef void (*moduleAttachFunc)(v8::Isolate* isolate, v8::Local<v8::ObjectTemplate> &global_template);
++typedef bool (*moduleInitFunc)();
++
++typedef struct {
++	moduleAttachFunc attach;
++	moduleInitFunc init;
++} NativeModule;
++
++std::vector<NativeModule *> gModules;
++
++int indexOf_shift (const char* base, const char* str, int startIndex) {
++    int result;
++    int baselen = (int)strlen(base);
++    // str should not longer than base
++    if ((int)strlen(str) > baselen || startIndex > baselen) {
++        result = -1;
++    } else {
++        if (startIndex < 0 ) {
++            startIndex = 0;
++        }
++        const char* pos = strstr(base+startIndex, str);
++        if (pos == NULL) {
++            result = -1;
++        } else {
++            result = (int)(pos - base);
++        }
++    }
++    return result;
++}
++
++int lastIndexOf (const char* base, const char* str) {
++    int result;
++    // str should not longer than base
++    if (strlen(str) > strlen(base)) {
++        result = -1;
++    } else {
++        int start = 0;
++        int endinit = (int)(strlen(base) - strlen(str));
++        int end = endinit;
++        int endtmp = endinit;
++        while(start != end) {
++            start = indexOf_shift(base, str, start);
++            end = indexOf_shift(base, str, end);
++
++            // not found from start
++            if (start == -1) {
++                end = -1; // then break;
++            } else if (end == -1) {
++                // found from start
++                // but not found from end
++                // move end to middle
++                if (endtmp == (start+1)) {
++                    end = start; // then break;
++                } else {
++                    end = endtmp - (endtmp - start) / 2;
++                    if (end <= start) {
++                        end = start+1;
++                    }
++                    endtmp = end;
++                }
++            } else {
++                // found from both start and end
++                // move start to end and
++                // move end to base - strlen(str)
++                start = end;
++                end = endinit;
++            }
++        }
++        result = start;
++    }
++    return result;
++}
++
++int isFileReadable(char * file)
++{
++	struct stat s;
++	return ( stat(file,&s) == 0 && !(s.st_mode & S_IFDIR));
++
++	//return access( file, R_OK )==0;	
++}
++
++void loadModules()
++{
++	char modulesPath[FILENAME_MAX] = "";
++	strcat(modulesPath,(char *)getauxval(AT_EXECFN));
++	int lastSl = (int)lastIndexOf(modulesPath, "/");
++	if (lastSl >=0) modulesPath[lastSl] = '\0';
++	strcat(modulesPath, "/modules");
++	DIR *dp;
++    struct dirent *dirp;
++    if((dp  = opendir(modulesPath)) == NULL) {	
++		printf("error opening modules directory %s\n", modulesPath);
++		return;
++	}
++	while ((dirp = readdir(dp)) != NULL) {
++		if (strcmp(dirp->d_name, "..")==0 || strcmp(dirp->d_name, ".")==0) continue;
++		char modulePath[FILENAME_MAX];
++		sprintf(modulePath, "%s/%s", modulesPath, dirp->d_name);
++		if (!isFileReadable(modulePath)) continue;
++		if (lastIndexOf(modulePath, ".so") != (int)strlen(modulePath)-3) continue;
++		void* handle = dlopen(modulePath, RTLD_LAZY);
++		if (!handle)
++		{
++			printf("can't load module: %s: %s\n", modulePath, dlerror());
++			continue;
++		}
++		NativeModule * nm = new NativeModule();
++		nm->attach = (moduleAttachFunc)dlsym(handle, "attach");
++		nm->init = (moduleInitFunc)dlsym(handle, "init");
++		if (nm->init())
++		{
++			gModules.push_back(nm);
++		} else
++		{
++			printf("module %s failed to initialize\n", modulePath);
++		}
++		printf("loaded module: %s\n", modulePath);
++    }
++	
++    closedir(dp);
++	
++}
++
++
+ namespace v8 {
+ 
+ namespace {
+@@ -2019,6 +2151,12 @@
+         async_hooks_templ);
+   }
+ 
++  //attach modules
++  for (auto it : gModules)
++  {
++	  it->attach(isolate, global_template);
++  }	  
++
+   return global_template;
+ }
+ 
+@@ -3762,7 +3900,7 @@
+ }  // namespace v8
+ 
+ #ifndef GOOGLE3
+-int main(int argc, char* argv[]) { return v8::Shell::Main(argc, argv); }
++int main(int argc, char* argv[]) {   loadModules();	return v8::Shell::Main(argc, argv); }
+ #endif
+ 
+ #undef CHECK
