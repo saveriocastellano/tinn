@@ -27,6 +27,18 @@ static const unsigned long STDIN_MAX = 1000000;
 using namespace v8;
 
 #include <curl/curl.h>
+#ifdef _WIN32
+#pragma comment(lib,"Ws2_32.lib")
+#endif
+
+
+#if defined(_WIN32)
+  #define LIBRARY_API __declspec(dllexport)
+#else
+  #define LIBRARY_API
+#endif
+
+
 
 typedef struct {
 	FCGX_Request * request;
@@ -257,7 +269,12 @@ static void HttpCloseSocket(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	Isolate* isolate = args.GetIsolate();
 	HandleScope handle_scope(isolate);
 	FCGX_ShutdownPending();
+#ifdef _WIN32	
+	shutdown(socketId,SD_BOTH);
+
+#else 
 	shutdown(socketId,SHUT_RD);
+#endif	
 }
 
 static void HttpOpenSocket(const v8::FunctionCallbackInfo<v8::Value>& args) {
@@ -271,7 +288,9 @@ static void HttpOpenSocket(const v8::FunctionCallbackInfo<v8::Value>& args) {
   }
   
   FCGX_Init();
+#ifndef _WIN32  
   umask(0);
+#endif  
   v8::String::Utf8Value jsSocket(isolate,Handle<v8::String>::Cast(args[0]));
   socketId = FCGX_OpenSocket(*jsSocket, 2000);
   if(socketId < 0)
@@ -413,8 +432,11 @@ static void HttpRequest(const v8::FunctionCallbackInfo<v8::Value>& args)
 		}
 		v8::String::Utf8Value jsProxy(isolate,Handle<v8::String>::Cast(jsUrlParts->Get(CONTEXT_ARG 1)TO_LOCAL_CHECKED));
 		v8::String::Utf8Value jsUrlFromArray(isolate,Handle<v8::String>::Cast(jsUrlParts->Get(CONTEXT_ARG 0)TO_LOCAL_CHECKED));
-		
+#ifdef _WIN32
+		url = _strdup(*jsUrlFromArray);
+#else 
 		url = strdup(*jsUrlFromArray);
+#endif	
 		curl_easy_setopt(curl, CURLOPT_PROXY, *jsProxy);
 	}
 	
@@ -485,7 +507,7 @@ static void HttpRequest(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 
 
-extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
+extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
 {	
 	Handle<ObjectTemplate> http = ObjectTemplate::New(isolate);
 	
@@ -507,7 +529,7 @@ extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template)
 
 }
 
-extern "C" bool init() 
+extern "C" bool LIBRARY_API init() 
 {
  	return true;
 }
