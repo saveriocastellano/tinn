@@ -292,10 +292,10 @@ http {
 ```
 
 ## Benchmark - TINN vs NodeJS
-Here we show a comparison between performance of TINN vs NodeJS. 
-The test was executed on Linux, using NGINX as an HTTP frontend for TINN.\
-This is a single-thread test where both TINN and NodeJS are using one single worker thread to process requests.\
-The test consist in sending 100k HTTP request using `ab` benchmark tool.
+Here we show a performance comparison between TINN vs NodeJS. 
+The test was executed on Linux, using NGINX as the HTTP frontend for TINN.\
+This is a single-thread test where both TINN and NodeJS are using one single worker to process requests.\
+The test consists in sending 100k HTTP requests using the `ab` benchmark tool.
 
 ### Node Hello World
 ```sh
@@ -318,7 +318,7 @@ server.listen(port, hostname, () => {
 
 ### TINN Hello World
 ```sh
-var sockAddr = '127.0.0.1:8210'
+var sockAddr = ':8210'
 Http.openSocket(sockAddr);
 
 print("Server listening on: " + sockAddr);
