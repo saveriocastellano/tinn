@@ -74,8 +74,15 @@ $ ./d8 examples/helloworld.js
 ```
 
 ### Windows users 
-A binary version of TINN is available for x64 machines:
-[a link](https://github.com/saveriocastellano/tinn/releases/download/0.1.1/tinn_windows_x64_0.1.1.zip)
+A binary version of TINN is available for x64 machines: \
+
+[tinn_windows_x64_0.1.1.zip (21.5 MB)](https://github.com/saveriocastellano/tinn/releases/download/0.1.1/tinn_windows_x64_0.1.1.zip)\
+
+Unzip the content of tinn_windows_x64_0.1.1.zip in a directory. To run scripts use the d8.exe executable:
+```sh
+d8 examples\helloworld.js
+```
+
 
 
 ## Build the modified version of d8 shell ##
