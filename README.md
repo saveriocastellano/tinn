@@ -29,6 +29,7 @@ Currently the following native modules are available:
 
 ## Download and setup TINN ##
 
+### Linux users ###
 Use the following commands to download TINN and the modified d8 executable:
 
 ```sh
@@ -72,6 +73,8 @@ Once you have the modules built you can try running one of the example scripts:
 $ ./d8 examples/helloworld.js
 ```
 
+### Windows users 
+
 ## Build the modified version of d8 shell ##
 Only read this section if the provided d8 executable (see previous section) does not work on your machine.
 
@@ -82,6 +85,7 @@ Follow these steps to build the modified version of the d8 executable which supp
 * rebuild d8
 * build the TINN native modules
 
+# Linux users 
 Use the commands below to download and build d8 (these steps are taken directly from google-v8 docs at https://v8.dev/docs/build):
 ```sh
 
