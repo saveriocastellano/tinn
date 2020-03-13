@@ -13,9 +13,21 @@ found in the LICENSE file.
 #include <algorithm>  
 #include <math.h>
 
+
+#ifdef _WIN32
+#include <Winsock2.h>
+#include <linux.h>
+#endif 
+
 #include "SSDB_client.h"
 
-#include "v8adapt.h"
+#include "v8adapt.h"	
+	
+#if defined(_WIN32)
+  #define LIBRARY_API __declspec(dllexport)
+#else
+  #define LIBRARY_API
+#endif
 
 using namespace std;
 using namespace v8;
@@ -238,7 +250,7 @@ static void SSDBInit(const v8::FunctionCallbackInfo<v8::Value>& args) {
 		region->instances = new Instance *[servers->Length()];
 		
 		for (int j = 0; j< servers->Length(); j++) {
-			Handle<Array> svr = servers->Get(CONTEXT_ARG j)TO_LOCAL_CHECKED;
+			Handle<Array> svr = Handle<Array>::Cast(servers->Get(CONTEXT_ARG j)TO_LOCAL_CHECKED);
 			if (svr->Length()!=2 || !svr->Get(CONTEXT_ARG 0)TO_LOCAL_CHECKED ->IsString() || !svr->Get(CONTEXT_ARG 1)TO_LOCAL_CHECKED ->IsUint32()) {
 				Throw(isolate, "invalid arguments: each server must have 2 elements");
 			}
@@ -1131,7 +1143,7 @@ static void SSDBPipelinedCommands(const v8::FunctionCallbackInfo<v8::Value>& arg
 	  {
 		Throw(isolate,"invalid arguments");
 	  }
-	  Handle<Array> cmd = cmds->Get(CONTEXT_ARG i)TO_LOCAL_CHECKED;
+	  Handle<Array> cmd = Handle<Array>::Cast(cmds->Get(CONTEXT_ARG i)TO_LOCAL_CHECKED);
 	  std::vector <std::string> command;
 	  int n = cmd->Length();
 	  SlotRegion * sr = NULL;
@@ -1173,7 +1185,7 @@ static void SSDBPipelinedCommands(const v8::FunctionCallbackInfo<v8::Value>& arg
   
 }
 
-extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
+extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
 {
 	Handle<ObjectTemplate> ssdb = ObjectTemplate::New(isolate);
 	
@@ -1221,11 +1233,11 @@ extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template)
 	
 	ssdb->SetInternalFieldCount(1);  
 	
-	global_template->Set(v8::String::NewFromUtf8(isolate,"ssdb")TO_LOCAL_CHECKED, ssdb);
+	global_template->Set(v8::String::NewFromUtf8(isolate,"SSDB")TO_LOCAL_CHECKED, ssdb);
 
 }
 
-extern "C" bool init() 
+extern "C" bool LIBRARY_API init() 
 {
 	return true;
 }
