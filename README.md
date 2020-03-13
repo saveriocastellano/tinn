@@ -321,13 +321,6 @@ ab -c 1 -n 100000 http://127.0.0.1/
 
 ### TINN result
 ```sh
-Server Software:        nginx/1.10.3
-Server Hostname:        127.0.0.1
-Server Port:            85
-
-Document Path:          /tinn
-Document Length:        12 bytes
-
 Concurrency Level:      1
 Time taken for tests:   49.832 seconds
 Complete requests:      100000
@@ -338,13 +331,6 @@ Requests per second:    2006.73 [#/sec] (mean)
 Time per request:       0.498 [ms] (mean)
 Time per request:       0.498 [ms] (mean, across all concurrent requests)
 Transfer rate:          280.24 [Kbytes/sec] received
-
-Connection Times (ms)
-              min  mean[+/-sd] median   max
-Connect:        0    0   0.1      0       9
-Processing:     0    0   0.5      0      19
-Waiting:        0    0   0.5      0      18
-Total:          0    0   0.5      0      19
 
 Percentage of the requests served within a certain time (ms)
   50%      0
