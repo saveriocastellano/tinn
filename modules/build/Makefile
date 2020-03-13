@@ -8,7 +8,7 @@ LIBSIGAR=-lsigar-amd64-linux
 CFLAGS=-O3 -std=c++11 -fPIC -I$(V8_HOME) -I$(DIR)/libs -I$(DIR)/includes -w -fpermissive -shared 
 CC=g++
  
-all: mod_http mod_hiredis mod_os mod_log mod_ssdb mod_hyperloglog mod_leveldb mod_javascript mod_hiredis_cluster 
+all: mod_http mod_redis mod_os mod_log mod_ssdb mod_hyperloglog mod_leveldb mod_javascript mod_redis_cluster 
 	
 hiredis:
 	$(MAKE) -C $(HIREDIS_HOME)
@@ -31,11 +31,11 @@ mod_os: os.cc
 mod_http: http.cc
 	$(CC) $(CFLAGS) http.cc $(DIR)/libs/sds.c -o ../mod_http.so -lfcgi++ -lfcgi -lcurl 
 	
-mod_hiredis: hiredis hiredis.cc 
-	$(CC) $(CFLAGS) -I$(HIREDIS_HOME) -I$(DIR)/libs -I $(HIREDIS_CPP_CLUSTER_HOME)/include -L$(HIREDIS_HOME) -I$(HIREDIS_HOME)/redis-client hiredis.cc $(DIR)/libs/sds.c $(HIREDIS_HOME)/libhiredis.a -o ../mod_hiredis.so
+mod_redis: hiredis redis.cc 
+	$(CC) $(CFLAGS) -I$(HIREDIS_HOME) -I$(DIR)/libs -I $(HIREDIS_CPP_CLUSTER_HOME)/include -L$(HIREDIS_HOME) -I$(HIREDIS_HOME)/redis-client redis.cc $(DIR)/libs/sds.c $(HIREDIS_HOME)/libhiredis.a -o ../mod_redis.so
 
-mod_hiredis_cluster: hiredis hiredis_cluster.cc
-	$(CC) $(CFLAGS) -I$(HIREDIS_HOME) -I$(DIR)/libs -I $(HIREDIS_CPP_CLUSTER_HOME)/include -L$(HIREDIS_HOME) hiredis_cluster.cc $(HIREDIS_HOME)/libhiredis.a -o ../mod_hiredis_cluster.so -levent 
+mod_redis_cluster: hiredis redis_cluster.cc
+	$(CC) $(CFLAGS) -I$(HIREDIS_HOME) -I$(DIR)/libs -I $(HIREDIS_CPP_CLUSTER_HOME)/include -L$(HIREDIS_HOME) redis_cluster.cc $(HIREDIS_HOME)/libhiredis.a -o ../mod_redis_cluster.so -levent 
 
 mod_ssdb: ssdb.cc 
 	$(CC) $(CFLAGS) -I$(HIREDIS_HOME) -I$(SSDB_HOME)/src -I$(SSDB_HOME)/src/client -I$(DIR)/libs $(DIR)/libs/sds.c ssdb.cc $(SSDB_HOME)/src/util/bytes.cpp $(SSDB_HOME)/src/net/link.cpp $(SSDB_HOME)/src/client/SSDB_impl.cpp -o ../mod_ssdb.so

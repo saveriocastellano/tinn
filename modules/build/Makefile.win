@@ -3,19 +3,32 @@ CC="C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\vc\Tools\Llvm\
 V8_VERSION=7.9.2 
 CURL_VERSION=7.65.2
 FCGI_VERSION=2.4.1
+HIREDIS_VERSION=0.11.0
 
-CFLAGS=-m64 -g -Wall -Wextra -Ilibs\v8_$(V8_VERSION) -Ilibs -Ilibs\include -Iincludes
+CFLAGS=-m64 -g -Wall -Wextra -Ilibs\v8_$(V8_VERSION) -Ilibs -Ilibs\include -Iincludes -Ilibs\win\include
 LDFLAGS=-Llibs\win\x64\v8_$(V8_VERSION) -lv8.dll -lv8_libplatform.dll
  
 
-all: javascript http cleanup
+all: redis_cluster redis os javascript http cleanup
  
+mod_redis_cluster: redis_cluster cleanup
+mod_redis: redis cleanup
 mod_javascript: javascript cleanup
 mod_http: http cleanup
+mod_os: os cleanup
 
+redis: redis.cc 
+    $(CC) $(CFLAGS) -Ilibs\hiredis redis.cc -shared -o..\mod_redis.dll $(LDFLAGS) -Llibs\win\x64\hiredis_$(HIREDIS_VERSION) -lhiredis -lWin32_Interop
+
+redis_cluster: redis_cluster.cc 
+    $(CC) $(CFLAGS) -Ilibs\hiredis -Ilibs\hiredis\cpp-hiredis-cluster\include redis_cluster.cc -shared -o..\mod_redis_cluster.dll $(LDFLAGS) -Llibs\win\x64\hiredis_$(HIREDIS_VERSION) -lhiredis -lWin32_Interop
+	
 javascript: javascript.cc
     $(CC) $(CFLAGS) javascript.cc -shared -o..\mod_javascript.dll $(LDFLAGS)
 
+os: os.cc
+    $(CC) $(CFLAGS) libs\win\src\linux.c  os.cc -shared -o..\mod_os.dll $(LDFLAGS)
+	
 http: http.cc
     $(CC) $(CFLAGS) -Ilibs\win\x64\fcgi_$(FCGI_VERSION)\include -Ilibs\win\x64\curl_$(CURL_VERSION)\include -I\include libs\sds.c http.cc -shared -o..\mod_http.dll $(LDFLAGS) -Llibs\win\x64\fcgi_$(FCGI_VERSION)\lib -llibfcgi -Llibs\win\x64\curl_$(CURL_VERSION)\lib -llibcurl
 

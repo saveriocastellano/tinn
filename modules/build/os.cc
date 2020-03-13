@@ -6,10 +6,19 @@ found in the LICENSE file.
 #include "include/v8.h"
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#ifdef _WIN32
+#include <io.h>
+#include <chrono>
+#include <thread>   
+#else
+#include <unistd.h>	
+#endif
 #include <string.h>
 #include <stdlib.h>
 #include <sstream>
+#ifdef _WIN32
+#include <linux.h>
+#endif 
 #include <dirent.h>
 #include <vector>
 #include <string>
@@ -18,7 +27,13 @@ found in the LICENSE file.
 #include <map>
 
 
-#include "v8adapt.h"		
+#include "v8adapt.h"	
+	 
+#if defined(_WIN32)
+  #define LIBRARY_API __declspec(dllexport)
+#else
+  #define LIBRARY_API
+#endif
 
 
 typedef unsigned char BYTE;
@@ -136,7 +151,11 @@ static void OSSleep(const v8::FunctionCallbackInfo<v8::Value>& args)
 		Throw(isolate, "invalid arguments");
 		return;
 	}
+#ifdef _WIN32
+	std::this_thread::sleep_for(std::chrono::microseconds(1000*args[0]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(1L))); 	
+#else 	
 	usleep(1000*args[0]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(1L));
+#endif
 	return ;
 }
 
@@ -614,7 +633,7 @@ static void OSReadbytes(const v8::FunctionCallbackInfo<v8::Value>& args)
 	{
 		jsBytes->Set(CONTEXT_ARG i, v8::Integer::New(isolate, buf[i]));
 	}
-	delete buf;
+	delete[] buf;
 
 	args.GetReturnValue().Set( jsBytes);
 	
@@ -681,8 +700,11 @@ static void OSMkDir(const v8::FunctionCallbackInfo<v8::Value>&  args)
 
 	v8::String::Utf8Value jsStr(isolate,Handle<v8::String>::Cast(args[0]));
 	char * dir = *jsStr;
-		
+#ifdef _WIN32
+	args.GetReturnValue().Set( v8::Integer::New(isolate, mkdir(dir)));
+#else
 	args.GetReturnValue().Set( v8::Integer::New(isolate, mkdir(dir,0700)));
+#endif	
 }
 
 
@@ -703,7 +725,12 @@ static void OSMkPath(const v8::FunctionCallbackInfo<v8::Value>&  args)
 		
 	for (char* p = strchr(file_path + 1, '/'); p; p = strchr(p + 1, '/')) {
 		*p = '\0';
+		
+#ifdef _WIN32
+		if (mkdir(file_path) == -1) {
+#else
 		if (mkdir(file_path, 0700) == -1) {
+#endif			
 			if (errno != EEXIST) {
 				*p = '/';
 				args.GetReturnValue().Set( v8::Integer::New(isolate, -1));
@@ -715,7 +742,7 @@ static void OSMkPath(const v8::FunctionCallbackInfo<v8::Value>&  args)
 	args.GetReturnValue().Set( v8::Integer::New(isolate, 0));
 }
 	
-extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
+extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
 {	
 	Handle<ObjectTemplate> os = ObjectTemplate::New(isolate);
 	
@@ -747,8 +774,10 @@ extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template)
 
 }
 
-extern "C" bool init() 
+extern "C" bool LIBRARY_API init() 
 {
+	WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
  	return true;
 }   
 

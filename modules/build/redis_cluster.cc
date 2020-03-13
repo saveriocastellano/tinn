@@ -5,15 +5,28 @@ found in the LICENSE file.
 */
 #include "include/v8.h"
 
+
+#include <sstream>
+
+#ifdef _WIN32
+#include <Winsock2.h>
+#include <linux.h>
+#endif
+
 #include "cluster.h"
 #include "hirediscommand.h"
-#include <sstream>
 
 using namespace std;
 using namespace v8;
 using namespace RedisCluster;
 
 #include "v8adapt.h"
+
+#if defined(_WIN32)
+  #define LIBRARY_API __declspec(dllexport)
+#else
+  #define LIBRARY_API
+#endif
 
 #define CONN_RETRY_SECS 10
 
@@ -244,6 +257,8 @@ static void Hiredis2Command(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	sdsfree(cmd);
 }
 
+
+
 static void Hiredis2CommandArgv(const v8::FunctionCallbackInfo<v8::Value>& args) {
   Isolate* isolate = args.GetIsolate();
   HandleScope handle_scope(isolate);  
@@ -264,8 +279,7 @@ static void Hiredis2CommandArgv(const v8::FunctionCallbackInfo<v8::Value>& args)
 	int num = args.Length();	
 	v8::String::Utf8Value jsKey(isolate,Handle<v8::String>::Cast(args[1]));
 	char *key = (*jsKey);
-		
-	const char ** rargs = new char *[args.Length()];
+	const char ** rargs = (const char**)new char *[args.Length()];
 	size_t * rargsLen = new size_t[args.Length()];
 	
 	for (int i=0; i<num; i++)
@@ -315,15 +329,15 @@ static void Hiredis2CommandArgv(const v8::FunctionCallbackInfo<v8::Value>& args)
 	
 	for (int i=0; i<num; i++)
 	{
-		free(rargs[i]);
+		free((char*)rargs[i]);
 	}		
-	delete rargsLen;
-	delete rargs; 
+	delete[] rargsLen;
+	delete[] rargs; 
 	
 }
 
 
-extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
+extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
 {
 	Handle<ObjectTemplate> hiredis = ObjectTemplate::New(isolate);
 	hiredis->Set(v8::String::NewFromUtf8(isolate, "init")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, Hiredis2Init));
@@ -338,11 +352,11 @@ extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template)
 	
 	hiredis->SetInternalFieldCount(1);  
 	
-	global_template->Set(v8::String::NewFromUtf8(isolate,"HiredisCluster")TO_LOCAL_CHECKED, hiredis);
+	global_template->Set(v8::String::NewFromUtf8(isolate,"RedisCluster")TO_LOCAL_CHECKED, hiredis);
 
 }
 
-extern "C" bool init() 
+extern "C" bool LIBRARY_API init() 
 {
 	return true;
 }

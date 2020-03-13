@@ -12,8 +12,18 @@ found in the LICENSE file.
 #include "hiredis.h"
 #include <sstream>
 
+#ifdef _WIN32
+#include <Winsock2.h>
+#include <linux.h>
+#endif
 
-#include "v8adapt.h"		
+#include "v8adapt.h"	
+	
+#if defined(_WIN32)
+  #define LIBRARY_API __declspec(dllexport)
+#else
+  #define LIBRARY_API
+#endif
 
 typedef redisContext redisContext_t;
 
@@ -177,7 +187,7 @@ static void HiredisConnect(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	  free(ctx->args->host);
 	  ctx->args->host = strdup(*jsHost);
   }
-  connect(isolate, args);
+  args.GetReturnValue().Set(v8::Boolean::New(isolate, connect(isolate, args)));
  }
 
  
@@ -188,9 +198,9 @@ static void HiredisClose(const v8::FunctionCallbackInfo<v8::Value>& args) {
     HandleScope handle_scope(isolate);  
  
     RedisContext *ctx = GetRedisContextFromInternalField(isolate, args.Holder());
-	printf("closing??\n");
+	//printf("closing??\n");
     if (!ctx->conn) return;
-	printf("calling redis free conn=%p fd=%d\n", ctx->conn, ctx->conn->fd);
+	//printf("calling redis free conn=%p fd=%d\n", ctx->conn, ctx->conn->fd);
 	redisFree(ctx->conn);
 	ctx->conn = NULL;
 	
@@ -240,8 +250,11 @@ static void HiredisGetReply(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	}
 	
 	redisReply *reply;
+#ifdef _WIN32	
+	redisGetReply(ctx->conn,(void**)&reply);
+#else	
 	redisGetReply(ctx->conn,&reply);
-	
+#endif	
 	if (reply == NULL)
 	{
 		Throw(isolate, "error connecting to redis");
@@ -368,7 +381,7 @@ static void HiredisCommandArgv(const v8::FunctionCallbackInfo<v8::Value>& args) 
 
 
 
-extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
+extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
 {
 	Handle<ObjectTemplate> hiredis = ObjectTemplate::New(isolate);
 	
@@ -389,11 +402,11 @@ extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template)
 	
 	hiredis->SetInternalFieldCount(1);  
 	
-	global_template->Set(v8::String::NewFromUtf8(isolate,"Hiredis")TO_LOCAL_CHECKED, hiredis);
+	global_template->Set(v8::String::NewFromUtf8(isolate,"Redis")TO_LOCAL_CHECKED, hiredis);
 
 }
 
-extern "C" bool init() 
+extern "C" bool LIBRARY_API init() 
 {
 	return true;
 }
