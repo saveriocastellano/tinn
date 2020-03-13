@@ -8,10 +8,11 @@ extern "C"
 {
 #endif
 
+#pragma clang diagnostic ignored "-Weverything" 
+
 #include <direct.h>
 #include <winsock.h> 
 #include <time.h>
-
 #define mkdir _mkdir
 #define popen _popen
 #define pclose _pclose
