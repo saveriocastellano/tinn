@@ -776,8 +776,10 @@ extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &glob
 
 extern "C" bool LIBRARY_API init() 
 {
+#ifdef _WIN32	
 	WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
+#endif	
  	return true;
 }   
 
