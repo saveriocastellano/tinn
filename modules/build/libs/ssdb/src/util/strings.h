@@ -6,7 +6,13 @@ found in the LICENSE file.
 #ifndef UTIL_STRING_H
 #define UTIL_STRING_H
 
+#ifdef _WIN32
+//#include <io.h>
+#include <direct.h>
+#else
 #include <unistd.h>
+#endif
+
 #include <string.h>
 #include <errno.h>
 #include <math.h>
