@@ -273,3 +273,88 @@ http {
 }
 
 ```
+
+## Benchmark - TINN vs NodeJS
+
+Node Hello World:
+```sh
+const http = require('http');
+
+const hostname = '127.0.0.1';
+const port = 3000;
+
+const server = http.createServer((req, res) => {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/plain');
+  res.end('Hello World');
+});
+
+server.listen(port, hostname, () => {
+  console.log(`Server running at http://${hostname}:${port}/`);
+});
+
+```
+
+TINN Hello World:
+```sh
+var sockAddr = '127.0.0.1:8210'
+Http.openSocket(sockAddr);
+
+print("Server listening on: " + sockAddr);
+
+Http.init();
+
+while(true) {
+        Http.accept();
+        Http.print("Status: 200 OK\r\n");
+        Http.print("Content-type: text/html\r\n");
+        Http.print("\r\n");
+        Http.print("Hello World!");
+	Http.finish();	
+}
+```
+
+
+```sh
+ab -c 1 -n 100000 http://127.0.0.1/
+```
+
+### TINN result
+```sh
+Server Software:        nginx/1.10.3
+Server Hostname:        127.0.0.1
+Server Port:            85
+
+Document Path:          /tinn
+Document Length:        12 bytes
+
+Concurrency Level:      1
+Time taken for tests:   49.832 seconds
+Complete requests:      100000
+Failed requests:        0
+Total transferred:      14300000 bytes
+HTML transferred:       1200000 bytes
+Requests per second:    2006.73 [#/sec] (mean)
+Time per request:       0.498 [ms] (mean)
+Time per request:       0.498 [ms] (mean, across all concurrent requests)
+Transfer rate:          280.24 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.1      0       9
+Processing:     0    0   0.5      0      19
+Waiting:        0    0   0.5      0      18
+Total:          0    0   0.5      0      19
+
+Percentage of the requests served within a certain time (ms)
+  50%      0
+  66%      0
+  75%      0
+  80%      1
+  90%      1
+  95%      1
+  98%      2
+  99%      2
+ 100%     19 (longest request)
+
+```
