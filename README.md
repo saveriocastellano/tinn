@@ -98,7 +98,7 @@ Follow these steps to build the modified version of the d8 executable which supp
 * rebuild d8
 * build the TINN native modules
 
-# Linux users 
+### Linux users 
 Use the commands below to download and build d8 (these steps are taken directly from google-v8 docs at https://v8.dev/docs/build):
 ```sh
 
