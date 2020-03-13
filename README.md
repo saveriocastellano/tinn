@@ -36,7 +36,8 @@ Use the following commands to download TINN and the modified d8 executable:
 $ wget https://github.com/saveriocastellano/tinn/archive/master.zip
 $ unzip master.zip
 $ cd master
-$ wget https://github.com/saveriocastellano/tinn/releases/download/0.1.1/d8
+$ wget https://github.com/saveriocastellano/tinn/releases/download/0.1.1/d8tinn_7.9.2_x64.tgz
+$ tar -zxvf d8tinn_7.9.2_x64.tgz
 ```
 Before continuing, make sure that the d8 executable can run on your machine (x64 machines only):
 ```sh
@@ -74,9 +75,11 @@ $ ./d8 examples/helloworld.js
 ```
 
 ### Windows users 
-A binary version of TINN is available for x64 machines: \
+A binary version of TINN is available for x64 machines:  
 
-[tinn_windows_x64_0.1.1.zip (21.5 MB)](https://github.com/saveriocastellano/tinn/releases/download/0.1.1/tinn_windows_x64_0.1.1.zip)\
+
+[tinn_windows_x64_0.1.1.zip (21.5 MB)](https://github.com/saveriocastellano/tinn/releases/download/0.1.1/tinn_windows_x64_0.1.1.zip)  
+
 
 Unzip the content of tinn_windows_x64_0.1.1.zip in a directory. To run scripts use the d8.exe executable:
 ```sh
