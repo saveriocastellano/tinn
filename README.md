@@ -29,13 +29,15 @@ Currently the following native modules are available:
 
 ## Download and setup TINN ##
 
+### Linux users ###
 Use the following commands to download TINN and the modified d8 executable:
 
 ```sh
 $ wget https://github.com/saveriocastellano/tinn/archive/master.zip
 $ unzip master.zip
 $ cd master
-$ wget https://github.com/saveriocastellano/tinn/releases/download/0.1.1/d8
+$ wget https://github.com/saveriocastellano/tinn/releases/download/0.1.1/d8tinn_7.9.2_x64.tgz
+$ tar -zxvf d8tinn_7.9.2_x64.tgz
 ```
 Before continuing, make sure that the d8 executable can run on your machine (x64 machines only):
 ```sh
@@ -72,6 +74,20 @@ Once you have the modules built you can try running one of the example scripts:
 $ ./d8 examples/helloworld.js
 ```
 
+### Windows users 
+A binary version of TINN is available for x64 machines:  
+
+
+[tinn_windows_x64_0.1.1.zip (21.5 MB)](https://github.com/saveriocastellano/tinn/releases/download/0.1.1/tinn_windows_x64_0.1.1.zip)  
+
+
+Unzip the content of tinn_windows_x64_0.1.1.zip in a directory. To run scripts use the d8.exe executable:
+```sh
+d8 examples\helloworld.js
+```
+
+
+
 ## Build the modified version of d8 shell ##
 Only read this section if the provided d8 executable (see previous section) does not work on your machine.
 
@@ -82,6 +98,7 @@ Follow these steps to build the modified version of the d8 executable which supp
 * rebuild d8
 * build the TINN native modules
 
+### Linux users 
 Use the commands below to download and build d8 (these steps are taken directly from google-v8 docs at https://v8.dev/docs/build):
 ```sh
 
@@ -122,7 +139,7 @@ The following defines a script called helloworld.js that sets up a FCGI server o
 
 ```sh
 
-var sockAddr = '127.0.0.1:8210'
+var sockAddr = ':8210'
 Http.openSocket(sockAddr);
 
 print("Server listening on: " + sockAddr);
@@ -193,7 +210,7 @@ Basically this is just a matter of splitting helloworld.js in two parts: the fir
 main.js
 ```sh
 
-var sockAddr = '127.0.0.1:8210'
+var sockAddr = ':8210'
 Http.openSocket(sockAddr);
 
 print("Server listening on: " + sockAddr);
@@ -271,5 +288,107 @@ http {
     }
   }
 }
+
+```
+
+## Benchmark - TINN vs NodeJS
+Here we show a performance comparison between TINN vs NodeJS. 
+The test was executed on Linux, using NGINX as the HTTP frontend for TINN.\
+This is a single-thread test where both TINN and NodeJS are using one single worker to process requests.\
+The test consists in sending 100k HTTP requests using the `ab` benchmark tool.
+
+### Node Hello World
+```sh
+const http = require('http');
+
+const hostname = '127.0.0.1';
+const port = 3000;
+
+const server = http.createServer((req, res) => {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/plain');
+  res.end('Hello World');
+});
+
+server.listen(port, hostname, () => {
+  console.log(`Server running at http://${hostname}:${port}/`);
+});
+
+```
+
+### TINN Hello World
+```sh
+var sockAddr = ':8210'
+Http.openSocket(sockAddr);
+
+print("Server listening on: " + sockAddr);
+
+Http.init();
+
+while(true) {
+        Http.accept();
+        Http.print("Status: 200 OK\r\n");
+        Http.print("Content-type: text/html\r\n");
+        Http.print("\r\n");
+        Http.print("Hello World!");
+	Http.finish();	
+}
+```
+
+This is the command used for the benchmark (given that this is  a single-thread test concurrency is set to 1):
+```sh
+ab -c 1 -n 100000 http://127.0.0.1/
+```
+
+### TINN result
+```sh
+Concurrency Level:      1
+Time taken for tests:   49.832 seconds
+Complete requests:      100000
+Failed requests:        0
+Total transferred:      14300000 bytes
+HTML transferred:       1200000 bytes
+Requests per second:    2006.73 [#/sec] (mean)
+Time per request:       0.498 [ms] (mean)
+Time per request:       0.498 [ms] (mean, across all concurrent requests)
+Transfer rate:          280.24 [Kbytes/sec] received
+
+Percentage of the requests served within a certain time (ms)
+  50%      0
+  66%      0
+  75%      0
+  80%      1
+  90%      1
+  95%      1
+  98%      2
+  99%      2
+ 100%     19 (longest request)
+
+```
+
+### NodeJS result
+```sh
+
+Concurrency Level:      1
+Time taken for tests:   50.672 seconds
+Complete requests:      100000
+Failed requests:        0
+Total transferred:      11300000 bytes
+HTML transferred:       1200000 bytes
+Requests per second:    1973.48 [#/sec] (mean)
+Time per request:       0.507 [ms] (mean)
+Time per request:       0.507 [ms] (mean, across all concurrent requests)
+Transfer rate:          217.78 [Kbytes/sec] received
+
+Percentage of the requests served within a certain time (ms)
+  50%      0
+  66%      0
+  75%      1
+  80%      1
+  90%      1
+  95%      1
+  98%      1
+  99%      2
+ 100%     26 (longest request)
 
 ```
