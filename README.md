@@ -74,6 +74,9 @@ $ ./d8 examples/helloworld.js
 ```
 
 ### Windows users 
+A binary version of TINN is available for x64 machines:
+[a link](https://github.com/saveriocastellano/tinn/releases/download/0.1.1/tinn_windows_x64_0.1.1.zip)
+
 
 ## Build the modified version of d8 shell ##
 Only read this section if the provided d8 executable (see previous section) does not work on your machine.
