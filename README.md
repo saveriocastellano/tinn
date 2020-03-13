@@ -344,3 +344,30 @@ Percentage of the requests served within a certain time (ms)
  100%     19 (longest request)
 
 ```
+
+### NodeJS result
+```sh
+
+Concurrency Level:      1
+Time taken for tests:   50.672 seconds
+Complete requests:      100000
+Failed requests:        0
+Total transferred:      11300000 bytes
+HTML transferred:       1200000 bytes
+Requests per second:    1973.48 [#/sec] (mean)
+Time per request:       0.507 [ms] (mean)
+Time per request:       0.507 [ms] (mean, across all concurrent requests)
+Transfer rate:          217.78 [Kbytes/sec] received
+
+Percentage of the requests served within a certain time (ms)
+  50%      0
+  66%      0
+  75%      1
+  80%      1
+  90%      1
+  95%      1
+  98%      1
+  99%      2
+ 100%     26 (longest request)
+
+```
