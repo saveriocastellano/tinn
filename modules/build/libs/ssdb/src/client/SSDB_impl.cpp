@@ -62,7 +62,9 @@ Client* Client::connect(const std::string &ip, int port){
 	static bool inited = false;
 	if(!inited){
 		inited = true;
+#ifndef _WIN32		
 		signal(SIGPIPE, SIG_IGN);
+#endif		
 	}
 	ClientImpl *client = new ClientImpl();
 	client->link = Link::connect(ip.c_str(), port);
