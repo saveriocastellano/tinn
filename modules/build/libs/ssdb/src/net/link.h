@@ -7,10 +7,15 @@ found in the LICENSE file.
 #define NET_LINK_H_
 
 #include <vector>
+#ifdef _WIN32
+#define INET_ADDRSTRLEN 16
+#define bzero(s, n) memset((s), 0, (n))
+#else
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#endif
 
 #include "../util/bytes.h"
 

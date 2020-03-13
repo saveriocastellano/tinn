@@ -8,12 +8,70 @@ found in the LICENSE file.
 #include <fcntl.h>
 #include <string.h>
 #include <stdarg.h>
+#ifndef _WIN32
 #include <sys/socket.h>
 #include <netdb.h>
+#else
+#include <string>
+#include "win32_types_hiredis.h"
+#include "win32_error.h"
+#include "win32_fdapi.h"
+#define INCL_WINSOCK_API_PROTOTYPES 0 // Important! Do not include Winsock API definitions to avoid conflicts with API entry points defined below.
+#include <WinSock2.h>                 // For SOCKADDR_STORAGE
 
+std::string net_dns_resolve(const char* hostname)
+{
+    struct addrinfo hints, *results, *item;
+    int status;
+    char ipstr[INET6_ADDRSTRLEN];
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;  /* AF_INET6 to force version */
+    hints.ai_socktype = SOCK_STREAM;
+
+    if((status = getaddrinfo(hostname, NULL, &hints, &results)) != 0)
+    {
+        fprintf(stderr, "failed to resolve hostname \"%s\": %s", hostname, gai_strerror(status));
+        return "";
+    }
+
+    printf("IP addresses for %s:\n\n", hostname);
+
+    for(item = results; item != NULL; item = item->ai_next)
+    {
+        void* addr;
+        char* ipver;
+
+        /* get pointer to the address itself */
+        /* different fields in IPv4 and IPv6 */
+        if(item->ai_family == AF_INET)  /* address is IPv4 */
+        {
+            struct sockaddr_in* ipv4 = (struct sockaddr_in*)item->ai_addr;
+            addr = &(ipv4->sin_addr);
+            ipver = "IPv4";
+        }
+        else  /* address is IPv6 */
+        {
+            struct sockaddr_in6* ipv6 = (struct sockaddr_in6*)item->ai_addr;
+            addr = &(ipv6->sin6_addr);
+            ipver = "IPv6";
+        }
+
+        /* convert IP to a string and print it */
+        inet_ntop(item->ai_family, addr, ipstr, sizeof ipstr);
+        //printf("  %s: %s\n", ipver, ipstr);
+    }
+
+    freeaddrinfo(results);
+	return ipstr;
+}
+#endif
 #include "link.h"
 
 #include "link_redis.cpp"
+
+
+
 
 #define INIT_BUFFER_SIZE	8
 #include <inttypes.h>
@@ -101,13 +159,14 @@ static bool is_ip(const char *host){
 	}   
 	return dot_count == 3;
 }
-
 Link* Link::connect(const char *host, int port){
 	Link *link;
 	int sock = -1;
 
 	char ip_resolve[INET_ADDRSTRLEN];
 	if(!is_ip(host)){
+		
+#ifndef _WIN32		
 		struct hostent *hptr = gethostbyname(host);
 		for(int i=0; hptr && hptr->h_addr_list[i] != NULL; i++){
 			struct in_addr *addr = (struct in_addr *)hptr->h_addr_list[i];
@@ -117,6 +176,10 @@ Link* Link::connect(const char *host, int port){
 				break;
 			}
 		}
+		
+#else 
+		host = net_dns_resolve(host).c_str();
+#endif	
 	}
 
 	struct sockaddr_in addr;
