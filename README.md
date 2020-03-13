@@ -139,7 +139,7 @@ The following defines a script called helloworld.js that sets up a FCGI server o
 
 ```sh
 
-var sockAddr = '127.0.0.1:8210'
+var sockAddr = ':8210'
 Http.openSocket(sockAddr);
 
 print("Server listening on: " + sockAddr);
@@ -210,7 +210,7 @@ Basically this is just a matter of splitting helloworld.js in two parts: the fir
 main.js
 ```sh
 
-var sockAddr = '127.0.0.1:8210'
+var sockAddr = ':8210'
 Http.openSocket(sockAddr);
 
 print("Server listening on: " + sockAddr);
