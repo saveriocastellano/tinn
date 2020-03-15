@@ -1,5 +1,3 @@
-Http.init();
-
 
 while(true) {
 	Http.accept();
