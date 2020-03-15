@@ -4,18 +4,32 @@ V8_VERSION=7.9.2
 CURL_VERSION=7.65.2
 FCGI_VERSION=2.4.1
 HIREDIS_VERSION=0.11.0
+LOG4CXX_VERSION=0.10.0
 
-CFLAGS=-m64 -g -Wall -Wextra -Ilibs\v8_$(V8_VERSION) -Ilibs -Ilibs\include -Iincludes -Ilibs\win\include
+NO_WARNS=-Wno-unused-parameter -Wno-deprecated -Wno-writable-strings -Wno-unused-variable -Wno-backslash-newline-escape -Wno-unused-result -Wno-deprecated-declarations -Wno-macro-redefined -Wno-sign-compare
+CFLAGS=-m64 -Ilibs\v8_$(V8_VERSION) -Ilibs -Ilibs\include -Iincludes -Ilibs\win\include $(NO_WARNS)
 LDFLAGS=-Llibs\win\x64\v8_$(V8_VERSION) -lv8.dll -lv8_libplatform.dll
  
 
-all: redis_cluster redis os javascript http cleanup
+all: ssdb redis_cluster redis os javascript http log hyperloglog cleanup
  
+mod_hyperloglog: hyperloglog cleanup
+mod_log: log cleanup
+mod_ssdb: ssdb cleanup
 mod_redis_cluster: redis_cluster cleanup
 mod_redis: redis cleanup
 mod_javascript: javascript cleanup
 mod_http: http cleanup
 mod_os: os cleanup
+
+hyperloglog: hyperloglog.cc 
+    $(CC) $(CFLAGS) -Ilibs\cpp-HyperLogLog\include hyperloglog.cc -shared -o..\mod_hyperloglog.dll $(LDFLAGS)
+
+log: log.cc 
+    $(CC) $(CFLAGS) -Ilibs\win\x64\log4cxx_$(LOG4CXX_VERSION) log.cc -shared -o..\mod_log.dll $(LDFLAGS) -Llibs\win\x64\log4cxx_$(LOG4CXX_VERSION)\lib -llog4cxx
+
+ssdb: ssdb.cc 
+    $(CC) $(CFLAGS) -Ilibs\ssdb\src -Ilibs\ssdb\src\net\win32_interop -Ilibs\ssdb\src\client libs\ssdb\src\net\link.cpp libs\ssdb\src\util\bytes.cpp libs\ssdb\src\client\SSDB_impl.cpp ssdb.cc -shared -o..\mod_ssdb.dll $(LDFLAGS) -lWin32_Interop -Llibs\win\x64\hiredis_$(HIREDIS_VERSION) -lws2_32
 
 redis: redis.cc 
     $(CC) $(CFLAGS) -Ilibs\hiredis redis.cc -shared -o..\mod_redis.dll $(LDFLAGS) -Llibs\win\x64\hiredis_$(HIREDIS_VERSION) -lhiredis -lWin32_Interop

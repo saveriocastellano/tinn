@@ -48,19 +48,22 @@ typedef struct {
 } OSContext;
 
 
-OSContext * GetOSContext(Isolate* isolate, Local<Object> object) {
-    Handle<External> field = Handle<External>::Cast(object->GetInternalField(0));
-    OSContext * ctx;
-	void* ptr = field->Value();
-	if (!ptr) {
-		ctx = new OSContext();	
-		ctx->num = 0;
-		object->SetInternalField(0, v8::External::New(isolate, ctx));
-	} else {
-		ctx =  static_cast<OSContext*>(ptr);
-	}
-	return ctx;
+static Local<Value> Throw(Isolate* isolate, const char* message) {
+	return isolate->ThrowException(v8::Exception::Error(String::NewFromUtf8(isolate, message, NewStringType::kNormal).ToLocalChecked()));
 }
+
+
+OSContext* GetOSContext(Isolate* isolate, Local<Object> object) {
+  OSContext* ctx =
+  static_cast<OSContext*>(object->GetAlignedPointerFromInternalField(0));
+  if (ctx == NULL) {
+    Throw(isolate, "ctx is defunct ");
+    return NULL;
+  }
+  return ctx;
+}
+
+
 	
 int indexOf_shift (const char* base, const char* str, int startIndex) {
     int result;
@@ -135,10 +138,6 @@ int isDirReadable(char * file)
 {
 	struct stat s;
 	return ( stat(file,&s) == 0 && (s.st_mode & S_IFDIR));
-}
-
-static Local<Value> Throw(Isolate* isolate, const char* message) {
-	return isolate->ThrowException(v8::Exception::Error(String::NewFromUtf8(isolate, message, NewStringType::kNormal).ToLocalChecked()));
 }
 
 static void OSSleep(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -742,8 +741,11 @@ static void OSMkPath(const v8::FunctionCallbackInfo<v8::Value>&  args)
 	args.GetReturnValue().Set( v8::Integer::New(isolate, 0));
 }
 	
-extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
+extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &context) 
 {	
+	v8::HandleScope handle_scope(isolate);
+    Context::Scope scope(context);
+	
 	Handle<ObjectTemplate> os = ObjectTemplate::New(isolate);
 	
 	os->Set(v8::String::NewFromUtf8(isolate, "filesize")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, OSFileSize));
@@ -769,9 +771,14 @@ extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &glob
 	os->Set(v8::String::NewFromUtf8(isolate, "writeString")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, OSWriteString));
 	
 	os->SetInternalFieldCount(1);  
-		
-	global_template->Set(v8::String::NewFromUtf8(isolate,"OS")TO_LOCAL_CHECKED, os);
-
+	
+	v8::Local<v8::Object> instance = os->NewInstance(context).ToLocalChecked();	
+	OSContext *ctx = new OSContext();	
+	ctx->num = 0;
+	instance->SetAlignedPointerInInternalField(0, ctx);		
+	context->Global()->Set(context,v8::String::NewFromUtf8(isolate,"OS")TO_LOCAL_CHECKED, instance).FromJust();	
+	
+	return true;
 }
 
 extern "C" bool LIBRARY_API init() 

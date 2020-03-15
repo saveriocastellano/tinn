@@ -6,14 +6,21 @@ found in the LICENSE file.
 #include "include/v8.h"
 
 #include <sys/stat.h>
+#ifndef _WIN32
 #include <unistd.h>
-
+#endif
 #include <log4cxx/logger.h>
 #include <log4cxx/xml/domconfigurator.h>
 
+#ifdef _WIN32
+LevelPtr mainLevel;
+LoggerPtr mainLogger(log4cxx::Logger::getLogger( "main"));
 
+#else
 log4cxx::LevelPtr mainLevel;
 log4cxx::LoggerPtr mainLogger(log4cxx::Logger::getLogger( "main"));
+	
+#endif
 #define TRACE(X) LOG4CXX_TRACE(mainLogger, X);
 #define DEBUG(X) LOG4CXX_DEBUG(mainLogger, X);
 #define INFO(X) LOG4CXX_INFO(mainLogger, X);
@@ -24,6 +31,13 @@ log4cxx::LoggerPtr mainLogger(log4cxx::Logger::getLogger( "main"));
 
 #include "v8adapt.h"		
 
+#if defined(_WIN32)
+  #define LIBRARY_API __declspec(dllexport)
+#else
+  #define LIBRARY_API
+#endif
+
+	
 
 using namespace std;
 using namespace v8;
@@ -211,9 +225,8 @@ static void LogIsLevel(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 
 
-
-extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
-{	
+extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &context) 
+{
 	Handle<ObjectTemplate> log = ObjectTemplate::New(isolate);
 	
 	log->Set(v8::String::NewFromUtf8(isolate, "fatal")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, LogFatal));
@@ -235,11 +248,14 @@ extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template)
 	log->Set(v8::String::NewFromUtf8(isolate,"INFO")TO_LOCAL_CHECKED, v8::Integer::New(isolate, log4cxx::Level::INFO_INT));
 		
 		
-	global_template->Set(v8::String::NewFromUtf8(isolate,"Log")TO_LOCAL_CHECKED, log);
+	v8::Local<v8::Object> instance = log->NewInstance(context).ToLocalChecked();	
+	context->Global()->Set(context,v8::String::NewFromUtf8(isolate,"Log")TO_LOCAL_CHECKED, instance).FromJust();
+	return true;
+	
 
 }
 
-extern "C" bool init() 
+extern "C" bool LIBRARY_API init() 
 {
  	return true;
 }

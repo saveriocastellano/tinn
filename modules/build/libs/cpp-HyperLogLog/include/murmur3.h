@@ -18,7 +18,9 @@
 #if defined(_MSC_VER)
 
 typedef unsigned char uint8_t;
+#ifndef _WIN32
 typedef unsigned long uint32_t;
+#endif
 typedef unsigned __int64 uint64_t;
 
 // Other compilers

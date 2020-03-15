@@ -184,7 +184,7 @@ Instance * GetSSDBInstance(Local<Object> object, char *key) {
     Handle<External> field = Handle<External>::Cast(object->GetInternalField(0));
     void* ptr = field->Value();
     SSDBContext* ctx =  static_cast<SSDBContext*>(ptr);
-
+	if (!ctx) return NULL;
     int len = strlen(key);
 	uint16_t crc16 = CRC16(key, len);
     int nodeId = crc16 % ctx->regionNum;
@@ -218,7 +218,18 @@ static void SSDBGetNodeId(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	args.GetReturnValue().Set (v8::Integer::New(isolate, nodeId));
 }
 
-static void SSDBInit(const v8::FunctionCallbackInfo<v8::Value>& args) {
+SSDBContext* GetSSDBContextFromInternalField(Isolate* isolate, Local<Object> object) {
+  SSDBContext* ctx =
+  static_cast<SSDBContext*>(object->GetAlignedPointerFromInternalField(0));
+  if (ctx == NULL) {
+    Throw(isolate, "ctx is defunct ");
+    return NULL;
+  }
+  return ctx;
+}
+
+
+static void SSDBConnect(const v8::FunctionCallbackInfo<v8::Value>& args) {
     Isolate* isolate = args.GetIsolate();
   
     HandleScope outer_scope(isolate);
@@ -233,9 +244,8 @@ static void SSDBInit(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	   
 	srand(time(NULL));
 	
-	SSDBContext* ctx = new SSDBContext();
-	args.Holder()->SetInternalField(0, v8::External::New(isolate,ctx));
-	  
+	SSDBContext * ctx = GetSSDBContextFromInternalField(isolate, args.Holder());
+	
 	   
 	Handle<Array> regions = Handle<v8::Array>::Cast(args[0]);
 	ctx->regions = new SlotRegion *[regions->Length()];
@@ -1185,13 +1195,16 @@ static void SSDBPipelinedCommands(const v8::FunctionCallbackInfo<v8::Value>& arg
   
 }
 
-extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
+extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &context) 
 {
+	v8::HandleScope handle_scope(isolate);
+    Context::Scope scope(context);
+	
 	Handle<ObjectTemplate> ssdb = ObjectTemplate::New(isolate);
 	
 	ssdb->Set(v8::String::NewFromUtf8(isolate, "nodeForId")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, SSDBGetNodeForId));	
 	ssdb->Set(v8::String::NewFromUtf8(isolate, "nodeId")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, SSDBGetNodeId));
-	ssdb->Set(v8::String::NewFromUtf8(isolate, "init")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, SSDBInit));
+	ssdb->Set(v8::String::NewFromUtf8(isolate, "connect")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, SSDBConnect));
 	ssdb->Set(v8::String::NewFromUtf8(isolate, "request")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, SSDBRequest));
 	ssdb->Set(v8::String::NewFromUtf8(isolate, "nodeRequest")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, SSDBNodeRequest));
 
@@ -1233,7 +1246,12 @@ extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &glob
 	
 	ssdb->SetInternalFieldCount(1);  
 	
-	global_template->Set(v8::String::NewFromUtf8(isolate,"SSDB")TO_LOCAL_CHECKED, ssdb);
+	v8::Local<v8::Object> instance = ssdb->NewInstance(context).ToLocalChecked();	
+	SSDBContext* ctx = new SSDBContext();
+	instance->SetAlignedPointerInInternalField(0, ctx);		
+	context->Global()->Set(context,v8::String::NewFromUtf8(isolate,"SSDB")TO_LOCAL_CHECKED, instance).FromJust();
+	
+	return true;
 
 }
 

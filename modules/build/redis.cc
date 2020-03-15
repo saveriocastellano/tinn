@@ -50,41 +50,15 @@ static Local<Value> Throw(Isolate* isolate, const char* message) {
 }
 
 RedisContext* GetRedisContextFromInternalField(Isolate* isolate, Local<Object> object) {
-  
-  Handle<External> field = Handle<External>::Cast(object->GetInternalField(0));
-  void* ptr = field->Value();
-  RedisContext* ctx =  static_cast<RedisContext*>(ptr);
-    //RedisContext* ctx = static_cast<RedisContext*>(object->GetAlignedPointerFromInternalField(0));
-
-  if (!ctx)
-  {
-	   ctx = new RedisContext();
-	   ctx->args = new RedistConnectArgs();
-	   ctx->args->port = DEFAULT_PORT;
-	   ctx->args->host = strdup(DEFAULT_HOST);	
-	   //object->SetAlignedPointerInInternalField(0, ctx);
-	   object->SetInternalField(0, v8::External::New(isolate,ctx));
+  RedisContext* ctx =
+  static_cast<RedisContext*>(object->GetAlignedPointerFromInternalField(0));
+  if (ctx == NULL) {
+    Throw(isolate, "ctx is defunct ");
+    return NULL;
   }
   return ctx;
 }
-/*
-RedistConnectArgs* GetRedisConnectArgsFromInternalField(Isolate* isolate, Local<Object> object) {
-  Handle<External> field = Handle<External>::Cast(object->GetInternalField(1));
-  void* ptr = field->Value();
-  RedistConnectArgs* args =  static_cast<RedistConnectArgs*>(ptr);
-  
-   if (!args)
-   {
-	  args = new RedistConnectArgs();
-	  args->port = DEFAULT_PORT;
-	  args->host = strdup(DEFAULT_HOST);
-	  object->SetInternalField(1, v8::External::New(isolate,args)); 
-	  return args;
-   }
 
-   return args;
-}
-*/
 
 bool connect(Isolate *isolate, const v8::FunctionCallbackInfo<v8::Value>& args)
 {
@@ -381,7 +355,7 @@ static void HiredisCommandArgv(const v8::FunctionCallbackInfo<v8::Value>& args) 
 
 
 
-extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
+extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &context) 
 {
 	Handle<ObjectTemplate> hiredis = ObjectTemplate::New(isolate);
 	
@@ -399,11 +373,16 @@ extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &glob
 	hiredis->Set(v8::String::NewFromUtf8(isolate,"REPLY_STATUS")TO_LOCAL_CHECKED, v8::Integer::New(isolate, REDIS_REPLY_STATUS));
 	hiredis->Set(v8::String::NewFromUtf8(isolate,"REPLY_ERROR")TO_LOCAL_CHECKED, v8::Integer::New(isolate, REDIS_REPLY_ERROR));
 	
-	
 	hiredis->SetInternalFieldCount(1);  
 	
-	global_template->Set(v8::String::NewFromUtf8(isolate,"Redis")TO_LOCAL_CHECKED, hiredis);
-
+	v8::Local<v8::Object> instance = hiredis->NewInstance(context).ToLocalChecked();	
+	RedisContext *ctx = new RedisContext();
+	ctx->args = new RedistConnectArgs();
+	ctx->args->port = DEFAULT_PORT;
+	ctx->args->host = strdup(DEFAULT_HOST);	
+	instance->SetAlignedPointerInInternalField(0, ctx);		
+	context->Global()->Set(context,v8::String::NewFromUtf8(isolate,"Redis")TO_LOCAL_CHECKED, instance).FromJust();	
+	return true;
 }
 
 extern "C" bool LIBRARY_API init() 

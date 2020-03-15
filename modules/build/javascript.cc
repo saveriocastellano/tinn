@@ -48,23 +48,18 @@ std::string Basename(const std::string& filename) {
 #endif   
 }
 
-JsContext* GetJsContextFromInternalField(Isolate* isolate, Local<Object> object) {
-  
-  Handle<External> field = Handle<External>::Cast(object->GetInternalField(0));
-  void* ptr = field->Value();
-  JsContext* ctx =  static_cast<JsContext*>(ptr);
-
-  if (!ctx)
-  {
-	   ctx = new JsContext();
-	   object->SetInternalField(0, v8::External::New(isolate,ctx));
-  }
-  return ctx;
-}
-
-
 static Local<Value> Throw(Isolate* isolate, const char* message) {
 	return isolate->ThrowException(v8::Exception::Error(String::NewFromUtf8(isolate, message, NewStringType::kNormal).ToLocalChecked()));
+}
+
+JsContext* GetJsContextFromInternalField(Isolate* isolate, Local<Object> object, bool inited = true) {
+  JsContext* ctx =
+  static_cast<JsContext*>(object->GetAlignedPointerFromInternalField(0));
+  if (ctx == NULL) {
+    Throw(isolate, "mod_javascript: ctx is defunct ");
+    return NULL;
+  }
+  return ctx;
 }
 
 
@@ -186,15 +181,22 @@ void ReportException(Isolate* isolate, v8::TryCatch* try_catch) {
 }
 
 
-extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
+extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &context) 
 {
+	
+	v8::HandleScope handle_scope(isolate);
+    Context::Scope scope(context);
+	
 	Handle<ObjectTemplate> js = ObjectTemplate::New(isolate);
 	
 	js->Set(v8::String::NewFromUtf8(isolate, "load")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, Run));	
-	
 	js->SetInternalFieldCount(1);  
 	
-	global_template->Set(v8::String::NewFromUtf8(isolate,"JS")TO_LOCAL_CHECKED, js);
+	v8::Local<v8::Object> instance = js->NewInstance(context).ToLocalChecked();	
+    JsContext * ctx = new JsContext();
+	instance->SetAlignedPointerInInternalField(0, ctx);		
+	context->Global()->Set(context,v8::String::NewFromUtf8(isolate,"JS")TO_LOCAL_CHECKED, instance).FromJust();
+	return true;
 
 }
 

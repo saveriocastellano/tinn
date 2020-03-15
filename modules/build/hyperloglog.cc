@@ -16,6 +16,12 @@ found in the LICENSE file.
 
 #include "v8adapt.h"
 
+	
+#if defined(_WIN32)
+  #define LIBRARY_API __declspec(dllexport)
+#else
+  #define LIBRARY_API
+#endif
 
 using namespace std;
 using namespace v8;
@@ -44,7 +50,7 @@ Handle<Array> dumpHll(Isolate* isolate, HyperLogLog &hll) {
 	{
 		jsBytes->Set(CONTEXT_ARG i, v8::Integer::New(isolate, contents[i]));
 	}
-	delete contents;
+	delete[] contents;
 	return jsBytes;
 }
 
@@ -62,7 +68,7 @@ void restoreHll(Isolate * isolate, Handle<Array> aBytes, HyperLogLog &hll) {
 	}
 	ss2.write(contents,size);
 	hll.restore(ss2);
-	delete contents;	
+	delete[] contents;	
 }
 
 
@@ -173,8 +179,7 @@ static void HyperLogLogGetCardinality(const v8::FunctionCallbackInfo<v8::Value>&
 	args.GetReturnValue().Set( v8::Integer::New(isolate, (int)cardinality));	
 }
 
-
-extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
+extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &context) 
 {
 	Handle<ObjectTemplate> hll = ObjectTemplate::New(isolate);
 	
@@ -183,13 +188,13 @@ extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template)
 	hll->Set(v8::String::NewFromUtf8(isolate, "getCardinality")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, HyperLogLogGetCardinality));
 	hll->Set(v8::String::NewFromUtf8(isolate, "merge")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, HyperLogLogMerge));
 	
-	hll->SetInternalFieldCount(1);  
+	v8::Local<v8::Object> instance = hll->NewInstance(context).ToLocalChecked();	
+	context->Global()->Set(context,v8::String::NewFromUtf8(isolate,"HyperLogLog")TO_LOCAL_CHECKED, instance).FromJust();	
 	
-	global_template->Set(v8::String::NewFromUtf8(isolate,"HyperLogLog")TO_LOCAL_CHECKED, hll);
-
+	return true;
 }
 
-extern "C" bool init() 
+extern "C" bool LIBRARY_API init() 
 {
 	return true;
 }

@@ -49,19 +49,23 @@ static Local<Value> Throw(Isolate* isolate, const char* message) {
 	return isolate->ThrowException(v8::Exception::Error(String::NewFromUtf8(isolate, message, NewStringType::kNormal).ToLocalChecked()));
 }
 
-RedisContext* GetRedisContextFromInternalField(Isolate* isolate, Local<Object> object) {
-  
-  Handle<External> field = Handle<External>::Cast(object->GetInternalField(0));
-  void* ptr = field->Value();
-  RedisContext* ctx =  static_cast<RedisContext*>(ptr);
 
-  if (!ctx)
-  {
-	   ctx = new RedisContext();
-	   object->SetInternalField(0, v8::External::New(isolate,ctx));
+
+RedisContext* GetRedisContextFromInternalField(Isolate* isolate, Local<Object> object, bool inited = true) {
+  RedisContext* ctx =
+  static_cast<RedisContext*>(object->GetAlignedPointerFromInternalField(0));
+  if (ctx == NULL) {
+    Throw(isolate, "ctx is defunct ");
+    return NULL;
+  }
+
+  if (inited && !ctx->servers) {
+    Throw(isolate, "mod_redis_cluster context not initialized, forgot to call 'connect' ?");
+    return NULL;	  
   }
   return ctx;
 }
+
 
 bool Connect(RedisContext *ctx) {	
 	//printf("try redis connect\n");
@@ -96,7 +100,7 @@ bool Connect(RedisContext *ctx) {
 	return false;
 }
 
-static void Hiredis2Init(const v8::FunctionCallbackInfo<v8::Value>& args) {
+static void Hiredis2Connect(const v8::FunctionCallbackInfo<v8::Value>& args) {
     Isolate* isolate = args.GetIsolate();
 	
     HandleScope outer_scope(isolate);
@@ -111,7 +115,7 @@ static void Hiredis2Init(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	
 	
 	RedisContext *ctx = GetRedisContextFromInternalField(isolate, args.Holder());
-	
+	if (!ctx) return;
 	Handle<Array> svrs = Handle<v8::Array>::Cast(args[0]);
 	ctx->servers = new RedisServer *[svrs->Length()];
 	ctx->serverNum = svrs->Length();
@@ -200,6 +204,8 @@ static void Hiredis2Command(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	}
 	
 	RedisContext *ctx = GetRedisContextFromInternalField(isolate, args.Holder());
+	if (!ctx) return;
+
 	if (ctx->cluster == NULL && !Connect(ctx)) {
 		Throw(isolate, "redis connection error");
 		return;
@@ -337,10 +343,13 @@ static void Hiredis2CommandArgv(const v8::FunctionCallbackInfo<v8::Value>& args)
 }
 
 
-extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
+extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &context) 
 {
+	v8::HandleScope handle_scope(isolate);
+    Context::Scope scope(context);
+	
 	Handle<ObjectTemplate> hiredis = ObjectTemplate::New(isolate);
-	hiredis->Set(v8::String::NewFromUtf8(isolate, "init")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, Hiredis2Init));
+	hiredis->Set(v8::String::NewFromUtf8(isolate, "connect")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, Hiredis2Connect));
 	hiredis->Set(v8::String::NewFromUtf8(isolate,"REPLY_STRING")TO_LOCAL_CHECKED, v8::Integer::New(isolate, REDIS_REPLY_STRING));
 	hiredis->Set(v8::String::NewFromUtf8(isolate,"REPLY_ARRAY")TO_LOCAL_CHECKED, v8::Integer::New(isolate, REDIS_REPLY_ARRAY));
 	hiredis->Set(v8::String::NewFromUtf8(isolate,"REPLY_INTEGER")TO_LOCAL_CHECKED, v8::Integer::New(isolate, REDIS_REPLY_INTEGER));
@@ -352,8 +361,11 @@ extern "C" void LIBRARY_API attach(Isolate* isolate, Local<ObjectTemplate> &glob
 	
 	hiredis->SetInternalFieldCount(1);  
 	
-	global_template->Set(v8::String::NewFromUtf8(isolate,"RedisCluster")TO_LOCAL_CHECKED, hiredis);
-
+	v8::Local<v8::Object> instance = hiredis->NewInstance(context).ToLocalChecked();	
+    RedisContext * ctx = new RedisContext();
+	instance->SetAlignedPointerInInternalField(0, ctx);		
+	context->Global()->Set(context,v8::String::NewFromUtf8(isolate,"RedisCluster")TO_LOCAL_CHECKED, instance).FromJust();
+	return true;
 }
 
 extern "C" bool LIBRARY_API init() 
