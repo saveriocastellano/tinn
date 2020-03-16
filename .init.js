@@ -980,3 +980,30 @@ var __filename = module.filename;
 var __dirname = path.dirname(module.filename);
 
 process.version = version();
+
+if (process.platform === 'win32') {
+	function fixPath(p) { return p.split('\\').join('\\\\'); }	
+	Http._openSocket = Http.openSocket;
+	Http.openSocket = function(addr, nginxPort) {
+		nginxPort = nginxPort ? nginxPort : 80;
+		OS.exec([fixPath(process.env['SystemRoot']+'\\System32\\taskkill.exe'), '/F', '/IM', 'nginx.exe', '2>', 'nul']);
+		var nginxDir = process.cwd() + '\\nginx';
+		var nginx = nginxDir + '\\nginx.exe'; 
+		var nginxConf = nginxDir + '\\nginx.conf'; 
+		var nginxConfTpl = nginxDir + '\\nginx.conf.tpl'; 
+		
+		if (OS.isFileAndReadable(nginx)) {
+			var listenAddr = addr.indexOf(":")==0? '127.0.0.1'+addr : addr;
+			if (OS.isFileAndReadable(nginxConfTpl)) {
+				var tpl = OS.readFile(nginxConfTpl);
+					tpl = tpl.replace('%ADDR%',listenAddr);
+				tpl = tpl.replace('%PORT%',nginxPort);
+				OS.writeFile(nginxConf, tpl);
+			}
+			print("nginx listening on port " + nginxPort);
+			new Worker('OS.exec(["'+fixPath(nginx)+'","-c","nginx.conf","-p","'+fixPath(nginxDir)+'"]);', {type:'string'});
+		}
+		Http._openSocket(addr);
+	}
+}
+	
