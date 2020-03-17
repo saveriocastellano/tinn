@@ -114,7 +114,7 @@ $ ./build/install-build-deps.sh
 $ tools/dev/gm.py x64.release
 
 ```
-Now assuming you have donwloaded TINN and uncompressed it in '~/master/' copy the modified d8 sources with the following command:
+Now assuming you have donwloaded TINN and uncompressed it in `~/master/` copy the modified d8 sources with the following command:
 ```sh
 $ cp  ~/master/modules/build/libs/v8_7.9.2/d8.* ./src/d8/ 
 ```
