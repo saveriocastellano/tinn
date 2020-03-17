@@ -27,6 +27,10 @@ Currently the following native modules are available:
 * **HyperLogLog**: implements the HyperLogLog algorithm
 * **JS**: provides support for creating isolated Javascript execution environments (through the d8 'Realm' class)
 
+## Documentation ##
+Refer to the [wiki](https://github.com/saveriocastellano/tinn/wiki) page.  
+
+
 ## Download and setup TINN ##
 
 ### Linux users ###
