@@ -482,41 +482,6 @@ static void HttpRequest(const v8::FunctionCallbackInfo<v8::Value>& args)
 }
 
 
-static void HttpInit(const v8::FunctionCallbackInfo<v8::Value>& args) {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope handle_scope(isolate);
-  
-  HttpContext * ctx = new HttpContext();
-  FCGX_Request * request = new FCGX_Request();
-  if(FCGX_InitRequest(request, socketId, FCGI_FAIL_ACCEPT_ON_INTR) != 0)
-  {
-	   delete ctx;
-	   Throw(isolate, "failed to init FCGX request");
-       return;
-  }
-  
-  CURL *curl = curl_easy_init();
-  if (!curl)
-  {
-	   delete ctx;
-	   Throw(isolate, "failed to init CURL");
-       return;
-	  
-  }
-    curl_easy_setopt(curl, CURLOPT_HEADER, 1);
-    curl_easy_setopt(curl, CURLOPT_HTTP_TRANSFER_DECODING, 0);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
-    curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
-    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "Hypergaming");
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writer);
-	
-	ctx->curl = curl;
-	ctx->request = request;
-	args.Holder()->SetAlignedPointerInInternalField(0, ctx);
-}
-
-
 extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &context) 
 {	
 	v8::HandleScope handle_scope(isolate);
@@ -525,7 +490,6 @@ extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &con
 	Handle<ObjectTemplate> http = ObjectTemplate::New(isolate);
 	
 	http->Set(v8::String::NewFromUtf8(isolate, "reset")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, HttpReset));
-	http->Set(v8::String::NewFromUtf8(isolate, "init")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, HttpInit));
 	http->Set(v8::String::NewFromUtf8(isolate, "accept")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, HttpAccept));
 	http->Set(v8::String::NewFromUtf8(isolate, "getParam")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, HttpGetParam));
 	http->Set(v8::String::NewFromUtf8(isolate, "getRequestBody")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, HttpGetRequestBody));
