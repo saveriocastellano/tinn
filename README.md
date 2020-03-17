@@ -27,6 +27,10 @@ Currently the following native modules are available:
 * **HyperLogLog**: implements the HyperLogLog algorithm
 * **JS**: provides support for creating isolated Javascript execution environments (through the d8 'Realm' class)
 
+## Documentation ##
+Refer to the [wiki](https://github.com/saveriocastellano/tinn/wiki) page.  
+
+
 ## Download and setup TINN ##
 
 ### Linux users ###
@@ -114,9 +118,9 @@ $ ./build/install-build-deps.sh
 $ tools/dev/gm.py x64.release
 
 ```
-Now assuming you have donwloaded TINN and uncompressed it in '~/master/' apply the patch with the following command:
+Now assuming you have donwloaded TINN and uncompressed it in `~/master/` copy the modified d8 sources with the following command:
 ```sh
-$ patch -p1 < ~/tinn-master/modules/build/libs/v8_7.9/d8_v7.9.patch 
+$ cp  ~/master/modules/build/libs/v8_7.9.2/d8.* ./src/d8/ 
 ```
 Now use the following command to add the '-rdynamic' link flag to the d8 makefile. This flag causes
 the d8 executable to export v8 symbols when dynamically loading external modules:
@@ -124,10 +128,15 @@ the d8 executable to export v8 symbols when dynamically loading external modules
 $ sed -i 's/-lpthread\s-lrt/-lpthread -lrt -rdynamic/' out/x64.release/obj/d8.ninja
 ```
 
-Finally, build the modified d8 executable (the following command only causes the file src/d8/d8.cc to be recompiled and then relinks the d8 executable):
+Finally, re-build the (modified) d8 executable (the following command only causes the file src/d8/d8.cc to be recompiled and then relinks the d8 executable):
 ```sh
 $ tools/dev/gm.py x64.release
 ```
+If the build is successful you will have in `out\x64.release` the three binaries that you need to copy into the TINN directory (~/master):
+
+- d8
+- natives_blob.bin
+- snapshot_blob.bin
 
 ## Web Application ##
 This example shows how to write a simple web application that replies with "Hello World!" on any request.
