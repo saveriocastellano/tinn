@@ -332,8 +332,6 @@ Http.openSocket(sockAddr);
 
 print("Server listening on: " + sockAddr);
 
-Http.init();
-
 while(true) {
         Http.accept();
         Http.print("Status: 200 OK\r\n");
