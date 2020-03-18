@@ -41,7 +41,7 @@ javascript: javascript.cc
     $(CC) $(CFLAGS) javascript.cc -shared -o..\mod_javascript.dll $(LDFLAGS)
 
 os: os.cc
-    $(CC) $(CFLAGS) libs\win\src\linux.c  os.cc -shared -o..\mod_os.dll $(LDFLAGS)
+    $(CC) $(CFLAGS) libs\win\src\linux.c os.cc -shared -o..\mod_os.dll $(LDFLAGS)
 	
 http: http.cc
     $(CC) $(CFLAGS) -Ilibs\win\x64\fcgi_$(FCGI_VERSION)\include -Ilibs\win\x64\curl_$(CURL_VERSION)\include -I\include libs\sds.c http.cc -shared -o..\mod_http.dll $(LDFLAGS) -Llibs\win\x64\fcgi_$(FCGI_VERSION)\lib -llibfcgi -Llibs\win\x64\curl_$(CURL_VERSION)\lib -llibcurl
