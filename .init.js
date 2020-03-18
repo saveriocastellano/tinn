@@ -986,13 +986,13 @@ if (process.platform === 'win32') {
 	Http._openSocket = Http.openSocket;
 	Http.openSocket = function(addr, nginxPort) {
 		nginxPort = nginxPort ? nginxPort : 80;
-		OS.exec([fixPath(process.env['SystemRoot']+'\\System32\\taskkill.exe'), '/F', '/IM', 'nginx.exe', '2>', 'nul']);
 		var nginxDir = process.cwd() + '\\nginx';
 		var nginx = nginxDir + '\\nginx.exe'; 
 		var nginxConf = nginxDir + '\\nginx.conf'; 
 		var nginxConfTpl = nginxDir + '\\nginx.conf.tpl'; 
 		
 		if (OS.isFileAndReadable(nginx)) {
+			OS.exec([fixPath(process.env['SystemRoot']+'\\System32\\taskkill.exe'), '/F', '/IM', 'nginx.exe', '2>', 'nul']);
 			var listenAddr = addr.indexOf(":")==0? '127.0.0.1'+addr : addr;
 			if (OS.isFileAndReadable(nginxConfTpl)) {
 				var tpl = OS.readFile(nginxConfTpl);
@@ -1000,8 +1000,8 @@ if (process.platform === 'win32') {
 				tpl = tpl.replace('%PORT%',nginxPort);
 				OS.writeFile(nginxConf, tpl);
 			}
-			print("nginx listening on port " + nginxPort);
 			new Worker('OS.exec(["'+fixPath(nginx)+'","-c","nginx.conf","-p","'+fixPath(nginxDir)+'"]);', {type:'string'});
+			print("nginx listening on port " + nginxPort);
 		}
 		Http._openSocket(addr);
 	}
