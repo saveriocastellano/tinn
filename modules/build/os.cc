@@ -26,7 +26,6 @@ found in the LICENSE file.
 #include <errno.h>
 #include <map>
 
-
 #include "v8adapt.h"	
 	 
 #if defined(_WIN32)
@@ -177,7 +176,11 @@ static void OSFileSize(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	v8::String::Utf8Value jsName(isolate,Handle<v8::String>::Cast(args[0]));
 	
 	struct stat st;
-	stat(*jsName, &st);
+	int res = stat(*jsName, &st);
+	if (res<0) {
+		args.GetReturnValue().Set(v8::Integer::New(isolate, -1));	
+		return;
+	}
 	int size = st.st_size;	
 	args.GetReturnValue().Set(v8::Integer::New(isolate, size));	
 	
@@ -259,29 +262,32 @@ void OSExec(const v8::FunctionCallbackInfo<v8::Value>& args)
 	}
 	
 	bool close = false;
-	if (args.Length() > 1) {
-		close = true;
+	if (args.Length() > 1 && !args[1]->IsBoolean()) {
+		Throw(isolate, "invalid argument");				
+		return;		
+	} else if(args.Length() > 1 && args[1]->IsBoolean()){
+		close = args[0]->BooleanValue(isolate);
 	}
 
     FILE* pipe = popen(ss.str().c_str(), "r");
     if (!pipe)
 	{
-		inst->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate, "result")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));		
+		return; 
 	} else {	
-		char buffer[128];
-		stringstream res;
+		if (close) {
+			inst->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate, "result")TO_LOCAL_CHECKED, v8::Integer::New(isolate,pclose(pipe)));		
+		} else {
+			char buffer[128];
+			stringstream res;
 
-		while(!feof(pipe)) {
-			if(fgets(buffer, 128, pipe) != NULL)
-				res << std::string(buffer);
-			
-			if (close) break;
+			while(!feof(pipe)) {
+				if(fgets(buffer, 128, pipe) != NULL)
+					res << std::string(buffer);
+			}
+			inst->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate, "result")TO_LOCAL_CHECKED, v8::Integer::New(isolate,pclose(pipe)));		
+			inst->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate, "output")TO_LOCAL_CHECKED, v8::String::NewFromUtf8(isolate, res.str().c_str())TO_LOCAL_CHECKED);	
 		}
-		pclose(pipe);
-		inst->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate, "output")TO_LOCAL_CHECKED, v8::String::NewFromUtf8(isolate, res.str().c_str())TO_LOCAL_CHECKED);	
-		inst->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate, "result")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));		
 	}
-
 	args.GetReturnValue().Set(inst);	
 }
 
@@ -406,15 +412,13 @@ static void OSListDir(const v8::FunctionCallbackInfo<v8::Value>& args)
 		v8::String::Utf8Value jsExt(isolate,Handle<v8::String>::Cast(args[1]));
 		ext = strdup(*jsExt);
 	}
-
 	vector<string> files;
 	while ((dirp = readdir(dp)) != NULL) {
 		if (strcmp(dirp->d_name, "..")==0 || strcmp(dirp->d_name, ".")==0) continue;
-		int lio = lastIndexOf(dirp->d_name, ext);
+		int lio = ext ? lastIndexOf(dirp->d_name, ext) : -1;
 		if (ext && (lio == 0 || lio != (strlen(dirp->d_name)-strlen(ext)))) continue;
 		files.push_back(string(dirp->d_name));
     }
-	
 	Handle<Array> results = v8::Array::New(isolate, files.size());
 	for (int i=0; i<files.size(); i++) {
 		results->Set(CONTEXT_ARG i, v8::String::NewFromUtf8(isolate, files[i].c_str())TO_LOCAL_CHECKED);
@@ -504,6 +508,25 @@ static void OSUnlink(const v8::FunctionCallbackInfo<v8::Value>& args)
 	args.GetReturnValue().Set( v8::Integer::New(isolate, unlink(*jsPath)));
 }
 
+static void OSRmdir(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+    Isolate* isolate = args.GetIsolate();
+    HandleScope handle_scope(isolate);
+	if (args.Length() == 0 || !args[0]->IsString())
+	{		
+		Throw(isolate, "invalid arguments");
+		return;
+	}	
+	
+	v8::String::Utf8Value jsPath(isolate,Handle<v8::String>::Cast(args[0]));	
+#ifdef _WIN32	
+	args.GetReturnValue().Set( v8::Integer::New(isolate, _rmdir(*jsPath)));
+#else	
+	args.GetReturnValue().Set( v8::Integer::New(isolate, rmdir(*jsPath)));
+#endif
+}
+
+
 static void OSFseek(const v8::FunctionCallbackInfo<v8::Value>&  args)
 {
     Isolate* isolate = args.GetIsolate();
@@ -585,7 +608,8 @@ static void OSFclose(const v8::FunctionCallbackInfo<v8::Value>&  args)
 	ctx->handles.erase(ctx->handles.find(fd));
 }
 
-static void OSReadbytes(const v8::FunctionCallbackInfo<v8::Value>& args)
+
+static void OSWritebytes(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
     Isolate* isolate = args.GetIsolate();
       
@@ -594,9 +618,52 @@ static void OSReadbytes(const v8::FunctionCallbackInfo<v8::Value>& args)
     Context::Scope context_scope(context);
 
 
-	if (args.Length() < 2)
+	if (args.Length() < 2 || !args[0]->IsUint32() || !args[1]->IsArray())
 	{
-		Throw(isolate, "Unexpected arguments");
+		Throw(isolate, "invalid arguments");
+		return;
+	}
+	unsigned int fd = args[0]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L);
+	OSContext *ctx = GetOSContext(isolate, args.Holder());	
+
+	if (ctx->handles.find(fd) == ctx->handles.end())
+	{
+		Throw(isolate, "File descriptor not found");
+		return;
+	}
+	
+	Handle<Array> jsBytes = Handle<Array>::Cast(args[1]);
+	BYTE * buf = new BYTE[jsBytes->Length()];
+	int count = jsBytes->Length();
+	for (unsigned int i=0; i<count;i++)
+	{
+		Handle<v8::Value> b =  jsBytes->Get(CONTEXT_ARG i)TO_LOCAL_CHECKED;
+		if (!b->IsUint32()) {
+			delete[] buf;
+			Throw(isolate, "invalid byte array");
+			return;
+		}
+		BYTE byte = b->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L);
+		buf[i] = byte;
+	}
+	int num = fwrite(buf, 1, count, ctx->handles[fd]);
+	delete[] buf;
+	args.GetReturnValue().Set(v8::Integer::New(isolate, num));
+}	
+	
+
+	
+static void OSReadbytes(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+    Isolate* isolate = args.GetIsolate();
+      
+    HandleScope outer_scope(isolate);
+    Local<Context> context = isolate->GetCurrentContext();
+    Context::Scope context_scope(context);
+
+	if (args.Length() < 2 || !args[0]->IsUint32())
+	{
+		Throw(isolate, "invalid arguments");
 		return;
 	}
 
@@ -611,7 +678,7 @@ static void OSReadbytes(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 	if (!args[1]->IsUint32())
 	{
-		Throw(isolate, "offset argument is invalid");
+		Throw(isolate, "count argument is invalid");
 		return;
 	}
 	
@@ -619,24 +686,56 @@ static void OSReadbytes(const v8::FunctionCallbackInfo<v8::Value>& args)
 	
 	BYTE * buf = new BYTE[count];
 	int bytesRead = fread(buf, 1, count, ctx->handles[fd]);
-	if (bytesRead != count)
-	{
-		delete buf;
-		std::stringstream ss;
-		ss<<"Cannot read "<<count<<" bytes from file, bytes read="<<bytesRead;
-		Throw(isolate, (ss.str().c_str()));
-	}
-	
 	Handle<Array> jsBytes = v8::Array::New(isolate, bytesRead);
 	for (unsigned int i=0; i<bytesRead; i++)
 	{
 		jsBytes->Set(CONTEXT_ARG i, v8::Integer::New(isolate, buf[i]));
 	}
 	delete[] buf;
-
+	
 	args.GetReturnValue().Set( jsBytes);
 	
 }
+
+static void OSReadString(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+    Isolate* isolate = args.GetIsolate();
+      
+    HandleScope outer_scope(isolate);
+    Local<Context> context = isolate->GetCurrentContext();
+    Context::Scope context_scope(context);
+
+	if (args.Length() < 2 || !args[0]->IsUint32())
+	{
+		Throw(isolate, "invalid arguments");
+		return;
+	}
+
+	unsigned int fd = args[0]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L);
+	OSContext *ctx = GetOSContext(isolate, args.Holder());	
+
+	if (ctx->handles.find(fd) == ctx->handles.end())
+	{
+		Throw(isolate, "File descriptor not found");
+		return;
+	}
+
+	if (!args[1]->IsUint32())
+	{
+		Throw(isolate, "count argument is invalid");
+		return;
+	}
+	
+	unsigned int count = args[1]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L);
+	
+	char * buf = new char[count+1];
+	int bytesRead = fread(buf, 1, count, ctx->handles[fd]);
+	buf[bytesRead] = '\0';
+	Handle<v8::String> jsVal = v8::String::NewFromUtf8(isolate, buf)TO_LOCAL_CHECKED;
+	args.GetReturnValue().Set( jsVal);
+	delete[] buf;
+}
+
 
 static void OSWriteString(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
@@ -718,29 +817,48 @@ static void OSMkPath(const v8::FunctionCallbackInfo<v8::Value>&  args)
 	    Throw(isolate, "Unexpected arguments");
 		return;
 	}
+	
+	struct stat sb;
+	char *slash;
+	int done = 0;
 
 	v8::String::Utf8Value jsStr(isolate,Handle<v8::String>::Cast(args[0]));
-	char * file_path = *jsStr;
-		
-	for (char* p = strchr(file_path + 1, '/'); p; p = strchr(p + 1, '/')) {
-		*p = '\0';
-		
+	char * path = *jsStr;
+	slash = path;
+	
+	while (!done) {
 #ifdef _WIN32
-		if (mkdir(file_path) == -1) {
+		slash += strspn(slash, "\\");
+		slash += strcspn(slash, "\\");
 #else
-		if (mkdir(file_path, 0700) == -1) {
-#endif			
-			if (errno != EEXIST) {
-				*p = '/';
-				args.GetReturnValue().Set( v8::Integer::New(isolate, -1));
-				return;
+		slash += strspn(slash, "/");
+		slash += strcspn(slash, "/");
+#endif
+		done = (*slash == '\0');
+		*slash = '\0';
+
+		if (stat(path, &sb)) {
+#ifdef _WIN32
+			if (errno != ENOENT || (mkdir(path) &&
+#else
+			if (errno != ENOENT || (mkdir(path, 0777) &&
+#endif 	
+			    errno != EEXIST)) {
+				return args.GetReturnValue().Set(v8::Integer::New(isolate, -1));	
 			}
+		} else if (!S_ISDIR(sb.st_mode)) {
+			return (-1);
 		}
-		*p = '/';
+
+		*slash = '/';
 	}
-	args.GetReturnValue().Set( v8::Integer::New(isolate, 0));
+
+	return args.GetReturnValue().Set(v8::Integer::New(isolate, 0));	
+
 }
 	
+
+
 extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &context) 
 {	
 	v8::HandleScope handle_scope(isolate);
@@ -764,11 +882,15 @@ extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &con
 	os->Set(v8::String::NewFromUtf8(isolate, "isDirAndReadable")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, OSDirAndReadable));
 	os->Set(v8::String::NewFromUtf8(isolate, "lastModifiedTime")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, OSLastModifiedTime));
 	os->Set(v8::String::NewFromUtf8(isolate, "unlink")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, OSUnlink));
+	os->Set(v8::String::NewFromUtf8(isolate, "rmdir")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, OSRmdir));
 	os->Set(v8::String::NewFromUtf8(isolate, "fseek")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, OSFseek));
 	os->Set(v8::String::NewFromUtf8(isolate, "fopen")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, OSFopen));
 	os->Set(v8::String::NewFromUtf8(isolate, "fclose")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, OSFclose));
 	os->Set(v8::String::NewFromUtf8(isolate, "readBytes")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, OSReadbytes));
 	os->Set(v8::String::NewFromUtf8(isolate, "writeString")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, OSWriteString));
+	os->Set(v8::String::NewFromUtf8(isolate, "readString")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, OSReadString));
+	os->Set(v8::String::NewFromUtf8(isolate, "writeBytes")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, OSWritebytes));
+	
 	
 	os->SetInternalFieldCount(1);  
 	
