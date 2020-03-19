@@ -314,7 +314,8 @@ extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &con
 	log->Set(v8::String::NewFromUtf8(isolate, "setLevel")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, LogSetLevel));
 	log->Set(v8::String::NewFromUtf8(isolate, "isLevel")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, LogIsLevel));
 
-	
+	log->Set(v8::String::NewFromUtf8(isolate,"ALL")TO_LOCAL_CHECKED, v8::Integer::New(isolate, log4cxx::Level::ALL_INT));
+	log->Set(v8::String::NewFromUtf8(isolate,"OFF")TO_LOCAL_CHECKED, v8::Integer::New(isolate, log4cxx::Level::OFF_INT));	
 	log->Set(v8::String::NewFromUtf8(isolate,"ERROR")TO_LOCAL_CHECKED, v8::Integer::New(isolate, log4cxx::Level::ERROR_INT));
 	log->Set(v8::String::NewFromUtf8(isolate,"TRACE")TO_LOCAL_CHECKED, v8::Integer::New(isolate, log4cxx::Level::TRACE_INT));
 	log->Set(v8::String::NewFromUtf8(isolate,"FATAL")TO_LOCAL_CHECKED, v8::Integer::New(isolate, log4cxx::Level::FATAL_INT));
