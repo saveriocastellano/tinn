@@ -15,6 +15,8 @@ found in the LICENSE file.
 #include <map>
 
 #include "leveldb/db.h"
+#include "leveldb/cache.h"
+#include "leveldb/filter_policy.h"
 
 #include "v8adapt.h"
 
@@ -53,8 +55,9 @@ LevelDBContext* GetContext(Isolate* isolate, Local<v8::Object> object) {
 static void LevelDBOpen(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	Isolate* isolate = args.GetIsolate();
 	HandleScope handle_scope(isolate);  
-  
-	if (args.Length() != 1 || !args[0]->IsString())
+    Local<Context> context = isolate->GetCurrentContext();
+	
+	if (args.Length() < 1 || !args[0]->IsString())
 	{		
 		Throw(isolate,"invalid arguments");
 		return;
@@ -64,7 +67,62 @@ static void LevelDBOpen(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	
 	leveldb::DB* db;
     leveldb::Options options;
-    options.create_if_missing = true;
+	
+	if (args.Length() > 1) {
+		
+		if (!args[1]->IsObject()){
+			Throw(isolate, "invalid 'options' value");
+			return;
+		}
+	
+		Handle<Object> optionsObj = Handle<Object>::Cast(args[1]);	
+		Local<Array> props = optionsObj->GetOwnPropertyNames(context).ToLocalChecked();
+		for (unsigned int i=0; i<props->Length();i++)
+		{
+			v8::String::Utf8Value propName(isolate,Handle<v8::String>::Cast(props->Get(CONTEXT_ARG i)TO_LOCAL_CHECKED));
+			Local<Value> propVal = optionsObj->Get(context, Handle<v8::String>::Cast(props->Get(CONTEXT_ARG i)TO_LOCAL_CHECKED)).ToLocalChecked();
+			
+			if (strcmp(*propName,"create_if_missing")==0) {
+				if (!propVal->IsBoolean()) {Throw(isolate, "invalid value for 'create_if_missing'"); return;}
+				options.create_if_missing = propVal->BooleanValue(isolate); 
+			} 	else if (strcmp(*propName,"error_if_exists")==0) {
+				if (!propVal->IsBoolean()) {Throw(isolate, "invalid value for 'error_if_exists'"); return;}
+				options.error_if_exists = propVal->BooleanValue(isolate); 
+			} 	else if (strcmp(*propName,"paranoid_checks")==0) {
+				if (!propVal->IsBoolean()) {Throw(isolate, "invalid value for 'paranoid_checks'"); return;}
+				options.paranoid_checks = propVal->BooleanValue(isolate); 
+			} 	else if (strcmp(*propName,"write_buffer_size")==0) {
+				if (!propVal->IsUint32()) {Throw(isolate, "invalid value for 'write_buffer_size'"); return;}
+				options.write_buffer_size = propVal->Uint32Value(context).FromMaybe(1L);
+			}	else if (strcmp(*propName,"max_open_files")==0) {
+				if (!propVal->IsUint32()) {Throw(isolate, "invalid value for 'max_open_files'"); return;}
+				options.max_open_files = propVal->Uint32Value(context).FromMaybe(1L);
+			}	else if (strcmp(*propName,"block_size")==0) {
+				if (!propVal->IsUint32()) {Throw(isolate, "invalid value for 'block_size'"); return;}
+				options.block_size = propVal->Uint32Value(context).FromMaybe(1L);
+			}	else if (strcmp(*propName,"block_restart_interval")==0) {
+				if (!propVal->IsUint32()) {Throw(isolate, "invalid value for 'block_restart_interval'"); return;}
+				options.block_restart_interval = propVal->Uint32Value(context).FromMaybe(1L);
+			}	else if (strcmp(*propName,"bloom_filter_policy_bits")==0) {
+				if (!propVal->IsUint32()) {Throw(isolate, "invalid value for 'bloom_filter_policy_bits'"); return;}
+				options.filter_policy  = leveldb::NewBloomFilterPolicy(propVal->Uint32Value(context).FromMaybe(1L));
+			}	else if (strcmp(*propName,"compression")==0) {
+				if (!propVal->IsBoolean()) {Throw(isolate, "invalid value for 'compression'"); return;}
+				if (propVal->BooleanValue(isolate)) {
+					options.compression = leveldb::kSnappyCompression;
+				} else {
+					options.compression = leveldb::kNoCompression;
+				}
+			}	else if (strcmp(*propName,"block_cache_size")==0) {
+				if (!propVal->IsUint32()) {Throw(isolate, "invalid value for 'cache_size'"); return;}
+				options.block_cache = leveldb::NewLRUCache(propVal->Uint32Value(context).FromMaybe(1L));
+			} else {				
+				Throw(isolate, "invalid option given");
+				return;
+			}		
+		}	
+	}
+	
     leveldb::Status status = leveldb::DB::Open(options, *jsPath, &db);	
     if (false == status.ok())
     {	
