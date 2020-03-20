@@ -10,7 +10,8 @@ found in the LICENSE file.
 #include <unistd.h>
 #endif
 #include <log4cxx/logger.h>
-#include <log4cxx/xml/domconfigurator.h>
+#include <log4cxx/basicconfigurator.h>
+#include <log4cxx/propertyconfigurator.h>
 
 #define TRACE(X,Y) LOG4CXX_TRACE(X, Y);
 #define DEBUG(X,Y) LOG4CXX_DEBUG(X, Y);
@@ -38,11 +39,9 @@ using namespace v8;
 typedef struct {
 #ifdef _WIN32
 	map<std::string, LoggerPtr> handles;
-	LevelPtr mainLevel;
 	LoggerPtr mainLogger;
 #else
 	map<std::string, log4cxx::LoggerPtr> handles;
-	log4cxx::LevelPtr mainLevel;
 	log4cxx::LoggerPtr mainLogger;	
 #endif
 	
@@ -243,11 +242,8 @@ static void LogInit(const v8::FunctionCallbackInfo<v8::Value>& args)
 		return;		
 	}
 	
-	log4cxx::xml::DOMConfigurator::configure(configFile);
-	ctx->mainLevel = log4cxx::Level::getDebug();
-	ctx->mainLogger = log4cxx::Logger::getRootLogger();
-	ctx->mainLogger->setLevel(ctx->mainLevel);
-	
+	log4cxx::PropertyConfigurator::configure(configFile);
+	ctx->mainLogger = log4cxx::Logger::getRootLogger();	
 }
 
 
@@ -275,7 +271,6 @@ static void LogSetLevel(const v8::FunctionCallbackInfo<v8::Value>& args)
 	int64_t level = (int64_t)args[0]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L);
 	LoggerPtr logger = getLogger(ctx, args);
 	
-	if (logger == ctx->mainLogger) ctx->mainLevel = log4cxx::Level::toLevel(level);
 	logger->setLevel(log4cxx::Level::toLevel(level));
 }
 
@@ -319,13 +314,14 @@ extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &con
 	log->Set(v8::String::NewFromUtf8(isolate, "setLevel")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, LogSetLevel));
 	log->Set(v8::String::NewFromUtf8(isolate, "isLevel")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, LogIsLevel));
 
-	
+	log->Set(v8::String::NewFromUtf8(isolate,"ALL")TO_LOCAL_CHECKED, v8::Integer::New(isolate, log4cxx::Level::ALL_INT));
+	log->Set(v8::String::NewFromUtf8(isolate,"OFF")TO_LOCAL_CHECKED, v8::Integer::New(isolate, log4cxx::Level::OFF_INT));	
 	log->Set(v8::String::NewFromUtf8(isolate,"ERROR")TO_LOCAL_CHECKED, v8::Integer::New(isolate, log4cxx::Level::ERROR_INT));
 	log->Set(v8::String::NewFromUtf8(isolate,"TRACE")TO_LOCAL_CHECKED, v8::Integer::New(isolate, log4cxx::Level::TRACE_INT));
 	log->Set(v8::String::NewFromUtf8(isolate,"FATAL")TO_LOCAL_CHECKED, v8::Integer::New(isolate, log4cxx::Level::FATAL_INT));
-	log->Set(v8::String::NewFromUtf8(isolate,"WARN")TO_LOCAL_CHECKED, v8::Integer::New(isolate, log4cxx::Level::WARN_INT));
+	log->Set(v8::String::NewFromUtf8(isolate,"WARN")TO_LOCAL_CHECKED, v8::Integer::New(isolate,  log4cxx::Level::WARN_INT));
 	log->Set(v8::String::NewFromUtf8(isolate,"DEBUG")TO_LOCAL_CHECKED, v8::Integer::New(isolate, log4cxx::Level::DEBUG_INT));
-	log->Set(v8::String::NewFromUtf8(isolate,"INFO")TO_LOCAL_CHECKED, v8::Integer::New(isolate, log4cxx::Level::INFO_INT));
+	log->Set(v8::String::NewFromUtf8(isolate,"INFO")TO_LOCAL_CHECKED, v8::Integer::New(isolate,  log4cxx::Level::INFO_INT));
 		
 		
 	log->SetInternalFieldCount(1);  

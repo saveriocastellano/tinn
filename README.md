@@ -153,8 +153,6 @@ Http.openSocket(sockAddr);
 
 print("Server listening on: " + sockAddr);
 
-Http.init();
-
 while(true) {
         Http.accept();
         Http.print("Status: 200 OK\r\n");
@@ -234,8 +232,6 @@ for(var i=0; i<threads; i++) {
 
 worker.js
 ```sh
-Http.init();
-
 while(true) {
         Http.accept();
         Http.print("Status: 200 OK\r\n");

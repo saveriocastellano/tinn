@@ -292,7 +292,7 @@ configuration information is stored.
 @param hierarchy The hierarchy to operation upon.
 */
       void doConfigure(const File& configFileName,
-         spi::LoggerRepositoryPtr& hierarchy);
+         LoggerRepositoryPtr& hierarchy);
 
       /**
       Read configuration options from file <code>configFilename</code>.
@@ -335,7 +335,7 @@ configuration information is stored.
       for the expected format.
       */
       void doConfigure(helpers::Properties& properties,
-         spi::LoggerRepositoryPtr& hierarchy);
+         LoggerRepositoryPtr& hierarchy);
 
 // --------------------------------------------------------------------------
 // Internal stuff
@@ -353,13 +353,13 @@ protected:
       void configureLoggerFactory(helpers::Properties& props);
 
       void configureRootLogger(helpers::Properties& props,
-         spi::LoggerRepositoryPtr& hierarchy);
+         LoggerRepositoryPtr& hierarchy);
 
       /**
       Parse non-root elements, such non-root categories and renderers.
       */
       void parseCatsAndRenderers(helpers::Properties& props,
-         spi::LoggerRepositoryPtr& hierarchy);
+         LoggerRepositoryPtr& hierarchy);
 
       /**
       Parse the additivity option for a non-root logger.
