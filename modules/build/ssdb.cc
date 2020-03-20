@@ -181,10 +181,10 @@ Instance * GetSSDBInstanceFromRegion(SlotRegion * region) {
 
 Instance * GetSSDBInstance(Local<Object> object, char *key) {
   
-    Handle<External> field = Handle<External>::Cast(object->GetInternalField(0));
-    void* ptr = field->Value();
-    SSDBContext* ctx =  static_cast<SSDBContext*>(ptr);
-	if (!ctx) return NULL;
+    SSDBContext* ctx = static_cast<SSDBContext*>(object->GetAlignedPointerFromInternalField(0));
+	if (!ctx) {
+		return NULL;
+	}
     int len = strlen(key);
 	uint16_t crc16 = CRC16(key, len);
     int nodeId = crc16 % ctx->regionNum;
@@ -1038,7 +1038,6 @@ static void SSDBRequest(const v8::FunctionCallbackInfo<v8::Value>& args) {
     HandleScope outer_scope(isolate);
     Local<Context> context = isolate->GetCurrentContext();
     Context::Scope context_scope(context);
- 
   if (args.Length() != 1 || !args[0]->IsArray())
   {
 	 Throw(isolate, "invalid arguments");
@@ -1054,27 +1053,27 @@ static void SSDBRequest(const v8::FunctionCallbackInfo<v8::Value>& args) {
 		v8::String::Utf8Value jsArg(isolate,Handle<v8::String>::Cast(rargs->Get(CONTEXT_ARG i)TO_LOCAL_CHECKED));
 		reqArgs.push_back(std::string(*jsArg));
   }  
-
+ 
   v8::String::Utf8Value jsCmd(isolate,Handle<v8::String>::Cast(rargs->Get(CONTEXT_ARG 1)TO_LOCAL_CHECKED)); 
   Instance * inst = NULL;
   Local<Object> res = Object::New(isolate);	
   const std::vector<std::string> *resp;
-
+ 
   do {
 	   inst = GetSSDBInstance(args.Holder(), *jsCmd);
-	   if (inst != NULL) {
+ 	   if (inst != NULL) {
 		   resp = inst->conn->request(reqArgs);
 		   ssdb::Status s = ssdb::Status(resp);
 		   if (s.error()) {
-			   delete inst->conn;		   
+			   delete inst->conn;
 			   inst->conn = NULL;
 			   continue;
-		   } else if (!s.ok()) {			
+		   } else if (!s.ok()) {	
 			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));
 			   args.GetReturnValue().Set (res);	
 			   return; 		
 		   } else {
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));		   
+			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));		   			  
 			   Handle<Array> eRes = v8::Array::New(isolate,resp->size());
 			   for (unsigned int i= 0; i<resp->size(); i++)
 			   {
