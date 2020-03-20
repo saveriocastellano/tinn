@@ -18,10 +18,17 @@ found in the LICENSE file.
 
 #include "v8adapt.h"
 
+#if defined(_WIN32)
+  #define LIBRARY_API __declspec(dllexport)
+#else
+  #define LIBRARY_API
+#endif
 
 
 using namespace std;
 using namespace v8;
+
+
 
 
 typedef struct {
@@ -31,23 +38,17 @@ typedef struct {
 } LevelDBContext;
 
 
-LevelDBContext * gCtx = NULL;
-
 static Local<Value> Throw(Isolate* isolate, const char* message) {
 	return isolate->ThrowException(v8::Exception::Error(String::NewFromUtf8(isolate, message, NewStringType::kNormal).ToLocalChecked()));
 }
 
-LevelDBContext* GetContext() {
 
-  if (!gCtx)
-  {
-	  gCtx = new LevelDBContext();
-	  gCtx->dbId = 0; 
-	  //object->SetInternalField(0, v8::External::New(isolate,ctx));
-  }
-  
-  return gCtx;
+LevelDBContext* GetContext(Isolate* isolate, Local<v8::Object> object) {
+  LevelDBContext* ctx =
+  static_cast<LevelDBContext*>(object->GetAlignedPointerFromInternalField(0));
+  return ctx;
 }
+
 
 static void LevelDBOpen(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	Isolate* isolate = args.GetIsolate();
@@ -70,7 +71,7 @@ static void LevelDBOpen(const v8::FunctionCallbackInfo<v8::Value>& args) {
 		args.GetReturnValue().Set( v8::Integer::New(isolate, -1));
 		return;
 	}
-	LevelDBContext * ctx = GetContext();
+	LevelDBContext * ctx = GetContext(isolate, args.Holder());
 	ctx->dbId++;
 	ctx->dbs[ctx->dbId] = db;
 	args.GetReturnValue().Set( v8::Integer::New(isolate, ctx->dbId));
@@ -90,7 +91,7 @@ static void LevelDBPut(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	v8::String::Utf8Value jsKey(isolate,Handle<v8::String>::Cast(args[1]));
 	v8::String::Utf8Value jsValue(isolate,Handle<v8::String>::Cast(args[2]));
 
-	LevelDBContext * ctx = GetContext();
+	LevelDBContext * ctx = GetContext(isolate, args.Holder());
 	
 	if (ctx->dbs.find(dbId)==ctx->dbs.end()){
 		Throw(isolate,"invalid db handle");
@@ -114,7 +115,7 @@ static void LevelDBGet(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	unsigned int dbId = args[0]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L);
 	v8::String::Utf8Value jsKey(isolate,Handle<v8::String>::Cast(args[1]));
 
-	LevelDBContext * ctx = GetContext();
+	LevelDBContext * ctx = GetContext(isolate, args.Holder());
 	
 	if (ctx->dbs.find(dbId)==ctx->dbs.end()){
 		Throw(isolate,"invalid db handle");
@@ -145,7 +146,7 @@ static void LevelDBDelete(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	unsigned int dbId = args[0]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L);
 	v8::String::Utf8Value jsKey(isolate,Handle<v8::String>::Cast(args[1]));
 
-	LevelDBContext * ctx = GetContext();
+	LevelDBContext * ctx = GetContext(isolate, args.Holder());
 	
 	if (ctx->dbs.find(dbId)==ctx->dbs.end()){
 		Throw(isolate,"invalid db handle");
@@ -170,7 +171,7 @@ static void LevelDBClose(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	}
 
 	unsigned int dbId = args[0]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L);
-	LevelDBContext * ctx = GetContext();
+	LevelDBContext * ctx = GetContext(isolate, args.Holder());
 	
 	if (ctx->dbs.find(dbId)==ctx->dbs.end()){
 		Throw(isolate,"invalid db handle");
@@ -182,7 +183,7 @@ static void LevelDBClose(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
 }
 
-extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template) 
+extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &context) 
 {
 	Handle<ObjectTemplate> leveldb = ObjectTemplate::New(isolate);
 	
@@ -192,11 +193,18 @@ extern "C" void attach(Isolate* isolate, Local<ObjectTemplate> &global_template)
 	leveldb->Set(v8::String::NewFromUtf8(isolate, "delete")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, LevelDBDelete));
 	leveldb->Set(v8::String::NewFromUtf8(isolate, "close")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, LevelDBClose));
 	
-	global_template->Set(v8::String::NewFromUtf8(isolate,"LevelDB")TO_LOCAL_CHECKED, leveldb);
-
+	leveldb->SetInternalFieldCount(1);  
+	
+	v8::Local<v8::Object> instance = leveldb->NewInstance(context).ToLocalChecked();	
+	LevelDBContext *ctx = new LevelDBContext();	
+	ctx->dbId = 0;
+	instance->SetAlignedPointerInInternalField(0, ctx);		
+	
+	context->Global()->Set(context,v8::String::NewFromUtf8(isolate,"LevelDB")TO_LOCAL_CHECKED, instance).FromJust();
+	return true;
 }
 
-extern "C" bool init() 
+extern "C" bool LIBRARY_API init() 
 {
 	return true;
 }
