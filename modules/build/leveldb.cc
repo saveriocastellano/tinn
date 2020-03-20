@@ -67,6 +67,7 @@ static void LevelDBOpen(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	
 	leveldb::DB* db;
     leveldb::Options options;
+	options.create_if_missing = true;
 	
 	if (args.Length() > 1) {
 		
@@ -126,6 +127,7 @@ static void LevelDBOpen(const v8::FunctionCallbackInfo<v8::Value>& args) {
     leveldb::Status status = leveldb::DB::Open(options, *jsPath, &db);	
     if (false == status.ok())
     {	
+		printf("Error opening database in %s: %s\n", *jsPath, status.ToString().c_str());
 		args.GetReturnValue().Set( v8::Integer::New(isolate, -1));
 		return;
 	}
