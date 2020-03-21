@@ -199,13 +199,37 @@ static void HttpAccept(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	}
 	
 	FCGX_Request* request = ctx->request;
-	int rc = FCGX_Accept_r(request);
-	ctx->served = false;
-	if (rc)
-	{
-	  
-	}
+	FCGX_Accept_r(request);
+
 }
+
+static void HttpGetParams(const v8::FunctionCallbackInfo<v8::Value>& args) {
+	Isolate* isolate = args.GetIsolate();
+	HandleScope handle_scope(isolate);
+    Local<Context> context = isolate->GetCurrentContext();
+    Context::Scope context_scope(context);
+	
+	HttpContext *ctx = GetHttpFromInternalField(isolate, args.Holder());
+	if (!ctx || !ctx->request) {
+	Throw(isolate,"failed to get request\n");
+	return;
+	}
+	FCGX_Request* request = ctx->request;
+	
+	char **env = request->envp;
+	char **env2 = request->envp;
+	int count = 0;
+    while (*(++env)) count++;
+	
+	Handle<Array> eRes = v8::Array::New(isolate, count);
+	count=0;
+    while (*(++env2)) {
+		eRes->Set(CONTEXT_ARG count, v8::String::NewFromUtf8(isolate,*env2)TO_LOCAL_CHECKED);
+		count++;
+	}
+	args.GetReturnValue().Set (eRes);    
+}
+
 
 static void HttpFinish(const v8::FunctionCallbackInfo<v8::Value>& args) {
   Isolate* isolate = args.GetIsolate();
@@ -492,6 +516,7 @@ extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &con
 	http->Set(v8::String::NewFromUtf8(isolate, "reset")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, HttpReset));
 	http->Set(v8::String::NewFromUtf8(isolate, "accept")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, HttpAccept));
 	http->Set(v8::String::NewFromUtf8(isolate, "getParam")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, HttpGetParam));
+	http->Set(v8::String::NewFromUtf8(isolate, "getParams")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, HttpGetParams));
 	http->Set(v8::String::NewFromUtf8(isolate, "getRequestBody")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, HttpGetRequestBody));
 	http->Set(v8::String::NewFromUtf8(isolate, "finish")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, HttpFinish));
 	http->Set(v8::String::NewFromUtf8(isolate, "print")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, HttpPrint));
