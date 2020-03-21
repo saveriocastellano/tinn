@@ -12,6 +12,7 @@ private:
 	
 	Link *link;
 	std::vector<std::string> resp_;
+
 public:
 	ClientImpl();
 	~ClientImpl();

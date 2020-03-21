@@ -109,7 +109,7 @@ bool  ClientImpl::pipelinedCommands(const std::vector<std::vector<std::string>> 
 	
 	for(std::vector<std::vector<std::string>>::const_iterator it=reqs.begin(); it!=reqs.end(); it++){
 		const std::vector<std::string> req = *it;
-		link->send(req);
+		if (link->send(req) == -1) return false;
 	}
 	
 	if(link->flush() == -1){

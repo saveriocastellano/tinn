@@ -20,6 +20,11 @@ public:
 	/**
 	 * Returns <code>true</code> if the request succeeded.
 	 */
+	
+    bool server_error() {
+		return code_ != "ok" && code_ != "not_found" && code_ != "client_error"; 
+	}	
+	 
 	bool ok(){
 		return code_ == "ok";
 	}
