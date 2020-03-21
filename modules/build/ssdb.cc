@@ -125,10 +125,8 @@ bool ConnectInstance(Instance *inst)
 
 
 SlotRegion * GetSSDBRegion(Local<Object> object, char *key) {
-    Handle<External> field = Handle<External>::Cast(object->GetInternalField(0));
-    void* ptr = field->Value();
-    SSDBContext* ctx =  static_cast<SSDBContext*>(ptr);
-
+    SSDBContext* ctx = static_cast<SSDBContext*>(object->GetAlignedPointerFromInternalField(0));
+		
     int len = strlen(key);
 	uint16_t crc16 = CRC16(key, len);
     int nodeId = crc16 % ctx->regionNum;
@@ -178,13 +176,16 @@ Instance * GetSSDBInstanceFromRegion(SlotRegion * region) {
 	return NULL;		
 }
 
+SSDBContext* GetSSDBContextFromInternalField(Local<Object> object) {
+  SSDBContext* ctx = static_cast<SSDBContext*>(object->GetAlignedPointerFromInternalField(0));
+  return ctx;
+}
+
+
 
 Instance * GetSSDBInstance(Local<Object> object, char *key) {
   
     SSDBContext* ctx = static_cast<SSDBContext*>(object->GetAlignedPointerFromInternalField(0));
-	if (!ctx) {
-		return NULL;
-	}
     int len = strlen(key);
 	uint16_t crc16 = CRC16(key, len);
     int nodeId = crc16 % ctx->regionNum;
@@ -195,20 +196,22 @@ Instance * GetSSDBInstance(Local<Object> object, char *key) {
 
 
 
+
 static void SSDBGetNodeId(const v8::FunctionCallbackInfo<v8::Value>& args) {
     Isolate* isolate = args.GetIsolate();
     HandleScope outer_scope(isolate);
     Local<Context> context = isolate->GetCurrentContext();
     Context::Scope context_scope(context);
-    if (args.Length() != 2 || !args[0]->IsString() || !args[1]->IsUint32())
+    if (args.Length() != 1 || !args[0]->IsString())
     {
 	 Throw(isolate, "invalid arguments");
 	  return;
     }	
 	
-	int num =  args[1]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L);
-    v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  
+	SSDBContext * ctx = GetSSDBContextFromInternalField(args.Holder());
 	
+	int num =  ctx->regionNum;
+    v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  
 	
 	char * key = *jsArg1;
     int len = strlen(key);
@@ -217,17 +220,6 @@ static void SSDBGetNodeId(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
 	args.GetReturnValue().Set (v8::Integer::New(isolate, nodeId));
 }
-
-SSDBContext* GetSSDBContextFromInternalField(Isolate* isolate, Local<Object> object) {
-  SSDBContext* ctx =
-  static_cast<SSDBContext*>(object->GetAlignedPointerFromInternalField(0));
-  if (ctx == NULL) {
-    Throw(isolate, "ctx is defunct ");
-    return NULL;
-  }
-  return ctx;
-}
-
 
 static void SSDBConnect(const v8::FunctionCallbackInfo<v8::Value>& args) {
     Isolate* isolate = args.GetIsolate();
@@ -244,7 +236,7 @@ static void SSDBConnect(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	   
 	srand(time(NULL));
 	
-	SSDBContext * ctx = GetSSDBContextFromInternalField(isolate, args.Holder());
+	SSDBContext * ctx = GetSSDBContextFromInternalField(args.Holder());
 	
 	   
 	Handle<Array> regions = Handle<v8::Array>::Cast(args[0]);
@@ -281,660 +273,6 @@ static void SSDBConnect(const v8::FunctionCallbackInfo<v8::Value>& args) {
 }	
 
 
-#if V8_MAJOR_VERSION >= 7 && V8_MINOR_VERSION >= 9
-	#define BIND_CMD(name) ssdb->Set(v8::String::NewFromUtf8(isolate, #name).ToLocalChecked(), FunctionTemplate::New(isolate, SSDBCommand_##name));
-#else 
-	#define BIND_CMD(name) ssdb->Set(v8::String::NewFromUtf8(isolate, #name), FunctionTemplate::New(isolate, SSDBCommand_##name));
-#endif		
-
-//#define BIND_CMD(name) ssdb->Set(v8::String::NewFromUtf8(isolate, #name).ToLocalChecked(), FunctionTemplate::New(isolate, SSDBCommand_##name));
-
-
-#define CMD_STR_STR(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\
-  if (args.Length() != 2 || !args[0]->IsString() || !args[1]->IsString())\
-  {\
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \
-  v8::String::Utf8Value jsArg2(isolate,Handle<v8::String>::Cast(args[1]));	  \
-  char * arg1 = *jsArg1;\
-  char * arg2 = *jsArg2;\
-  Instance * inst = NULL;\
-  Local<Object> res = Object::New(isolate);	\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1, arg2);\
-		   if (s.error()) {\
-			   delete inst->conn;\
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\
-  Throw(isolate, "ssdb connect error");\  
-}
-
-#define CMD_STR_to_STR(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\	
-  if (args.Length() != 1 || !args[0]->IsString())\
-  {\  
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \
-  char * arg1 = *jsArg1;\
-  std::string val;\
-  Instance * inst = NULL;\
-  Local<Object> res = Object::New(isolate);	\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1, &val);\
-		   if (s.error()) {\
-			   delete inst->conn;\		   
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"string")TO_LOCAL_CHECKED, v8::String::NewFromUtf8(isolate,val.c_str())TO_LOCAL_CHECKED);	\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\
-  Throw(isolate, "ssdb connect error");\  
-}
-
-
-
-#define CMD_STR_STR_to_INT(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\	
-  if (args.Length() != 2 || !args[0]->IsString() || !args[1]->IsString())\
-  {\
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \
-  v8::String::Utf8Value jsArg2(isolate,Handle<v8::String>::Cast(args[1]));	  \
-  char * arg1 = *jsArg1;\
-  char * arg2 = *jsArg2;\
-  int64_t val;\
-  Instance * inst = NULL;\
-  Local<Object> res = Object::New(isolate);	\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1, arg2, &val);\
-		   if (s.error()) {\
-			   delete inst->conn;\		   
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"integer")TO_LOCAL_CHECKED, v8::Integer::New(isolate,val));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\  
-  Throw(isolate, "ssdb connect error");\  
-}
-
-
-#define CMD_STR_INT_to_INT(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\	
-  if (args.Length() != 2 || !args[0]->IsString() || !args[1]->IsUint32())\
-  {\
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \  
-  int arg2 =  args[1]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L); \
-  char * arg1 = *jsArg1;\
-  int64_t val;\  
-  Instance * inst = NULL;\
-  Local<Object> res = Object::New(isolate);	\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1, (int64_t)arg2, &val);\
-		   if (s.error()) {\
-			   delete inst->conn;\		   
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"integer")TO_LOCAL_CHECKED, v8::Integer::New(isolate,val));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\  
-  Throw(isolate, "ssdb connect error");\  
-}
-
-
-
-#define CMD_STR_STR_INT_to_INT(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\	
-  if (args.Length() != 3 || !args[0]->IsString() || !args[1]->IsString() || !args[2]->IsUint32())\
-  {\
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \
-  v8::String::Utf8Value jsArg2(isolate,Handle<v8::String>::Cast(args[1]));	  \
-  int arg3 =  args[2]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L); \
-  char * arg1 = *jsArg1;\
-  char * arg2 = *jsArg2;\
-  int64_t val;\  
-  Instance * inst = NULL;\
-  Local<Object> res = Object::New(isolate);	\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1, arg2, (int64_t)arg3, &val);\
-		   if (s.error()) {\
-			   delete inst->conn;\		   
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"integer")TO_LOCAL_CHECKED, v8::Integer::New(isolate,val));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\  
-  Throw(isolate, "ssdb connect error");\  
-}
-
-
-#define CMD_STR_STR_INT(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\	
-  if (args.Length() != 3 || !args[0]->IsString() || !args[1]->IsString() || !args[2]->IsUint32())\
-  {\
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \
-  v8::String::Utf8Value jsArg2(isolate,Handle<v8::String>::Cast(args[1]));	  \
-  int arg3 =  args[2]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L);\
-  char * arg1 = *jsArg1;\
-  char * arg2 = *jsArg2;\
-  Instance * inst = NULL;\
-  Local<Object> res = Object::New(isolate);	\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1, arg2, (int64_t)arg3);\
-		   if (s.error()) {\
-			   delete inst->conn;\		   
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\  
-  Throw(isolate, "ssdb connect error");\    
-}
-
-
-#define CMD_STR_INT_INT_to_INT(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\	
-  if (args.Length() != 3 || !args[0]->IsString() || !args[1]->IsUint32() || !args[2]->IsUint32())\
-  {\
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	  
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \
-  int arg2 =  args[1]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L);\
-  int arg3 =  args[2]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L);\
-  char * arg1 = *jsArg1;\
-  int64_t val;\
-  Instance * inst = NULL;\
-  Local<Object> res = Object::New(isolate);	\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1, (int64_t)arg2, (int64_t)arg3, &val);\
-		   if (s.error()) {\
-			   delete inst->conn;\		   
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"integer")TO_LOCAL_CHECKED, v8::Integer::New(isolate,val));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\  
-  Throw(isolate, "ssdb connect error");\   
-}
-
-//	virtual Status hscan(const std::string &name, const std::string &key_start, const std::string &key_end,
-	//	uint64_t limit, std::vector<std::string> *ret);
-
-	
-	
-#define CMD_STR_INT_INT_to_STRLIST(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\	
-  if (args.Length() != 3 || !args[0]->IsString() || !args[1]->IsInt32() || !args[2]->IsInt32())\
-  {\
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \
-  int arg2 =  args[1]->Int32Value(isolate->GetCurrentContext()).FromMaybe(0); \
-  int arg3 =  args[2]->Int32Value(isolate->GetCurrentContext()).FromMaybe(0); \  
-  char * arg1 = *jsArg1;\  
-  std::vector<std::string> vals;\
-  Instance * inst = NULL;\
-  Local<Object> res = Object::New(isolate);	\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1, (int64_t)arg2, (int64_t)arg3, &vals);\
-		   if (s.error()) {\
-			   delete inst->conn;\		   
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   Handle<Array> elements = v8::Array::New(isolate,vals.size());\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   for (unsigned int i= 0; i<vals.size(); i++)\
-			   {\
-				  elements->Set(CONTEXT_ARG i, v8::String::NewFromUtf8(isolate,vals[i].c_str())TO_LOCAL_CHECKED);\
-			   }\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"elements")TO_LOCAL_CHECKED, elements);\			   
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\  
-  Throw(isolate, "ssdb connect error");\  
-}
-	
-	
-	
-#define CMD_STR_STR_STR_INT_to_STRLIST(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\	
-  if (args.Length() != 4 || !args[0]->IsString() || !args[1]->IsString() || !args[2]->IsString() || !args[3]->IsInt32())\
-  {\
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \
-  v8::String::Utf8Value jsArg2(isolate,Handle<v8::String>::Cast(args[1]));	  \
-  v8::String::Utf8Value jsArg3(isolate,Handle<v8::String>::Cast(args[2]));	  \
-  int arg4 =  args[3]->Int32Value(isolate->GetCurrentContext()).FromMaybe(0); \  
-  char * arg1 = *jsArg1;\
-  char * arg2 = *jsArg2;\
-  char * arg3 = *jsArg3;\
-  std::vector<std::string> vals;\
-  Instance * inst = NULL;\
-  Local<Object> res = Object::New(isolate);	\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1, arg2, arg3, (int64_t)arg4, &vals);\
-		   if (s.error()) {\
-			   delete inst->conn;\		   
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   Handle<Array> elements = v8::Array::New(isolate,vals.size());\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   for (unsigned int i= 0; i<vals.size(); i++)\
-			   {\
-				  elements->Set(CONTEXT_ARG i, v8::String::NewFromUtf8(isolate,vals[i].c_str())TO_LOCAL_CHECKED);\
-			   }\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"elements")TO_LOCAL_CHECKED, elements);\			   
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\  
-  Throw(isolate, "ssdb connect error");\  
-}
-
-	
-#define CMD_STR_STR_STR_to_STRLIST(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\	
-  if (args.Length() != 3 || !args[0]->IsString() || !args[1]->IsString() || !args[2]->IsString())\
-  {\
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \
-  v8::String::Utf8Value jsArg2(isolate,Handle<v8::String>::Cast(args[1]));	  \
-  v8::String::Utf8Value jsArg3(isolate,Handle<v8::String>::Cast(args[2]));	  \
-  char * arg1 = *jsArg1;\
-  char * arg2 = *jsArg2;\
-  char * arg3 = *jsArg3;\
-  std::vector<std::string> vals;\
-  Instance * inst = NULL;\
-  Local<Object> res = Object::New(isolate);	\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1, arg2, arg3, &vals);\
-		   if (s.error()) {\
-			   delete inst->conn;\		   
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   Handle<Array> elements = v8::Array::New(isolate,vals.size());\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   for (unsigned int i= 0; i<vals.size(); i++)\
-			   {\
-				  elements->Set(CONTEXT_ARG i, v8::String::NewFromUtf8(isolate,vals[i].c_str()));\
-			   }\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"elements")TO_LOCAL_CHECKED, elements);\			   
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\  
-  Throw(isolate, "ssdb connect error");\  
-}
-
-
-
-
-#define CMD_STR_STR_to_STR(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\	
-  if (args.Length() != 2 || !args[0]->IsString() || !args[1]->IsString())\
-  {\
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \
-  v8::String::Utf8Value jsArg2(isolate,Handle<v8::String>::Cast(args[1]));	  \  
-  char * arg1 = *jsArg1;\
-  char * arg2 = *jsArg2;\
-  std::string val;\
-  Instance * inst = NULL;\
-  Local<Object> res = Object::New(isolate);	\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1, arg2, &val);\
-		   if (s.error()) {\
-			   delete inst->conn;\		   
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"string")TO_LOCAL_CHECKED, v8::String::NewFromUtf8(isolate,val.c_str())TO_LOCAL_CHECKED);	\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\  
-  Throw(isolate, "ssdb connect error");\   
-}
-	
-	
-#define CMD_STR_STR_PINT_PINT_INT_STRLIST(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\	
-  if (args.Length() != 5 || !args[0]->IsString() || !args[1]->IsString() || !args[2]->IsInt32() || !args[3]->IsInt32() || !args[4]->IsInt32())\
-  {\
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \
-  v8::String::Utf8Value jsArg2(isolate,Handle<v8::String>::Cast(args[1]));	  \
-  char * arg1 = *jsArg1;\
-  char * arg2 = *jsArg2;\
-  int64_t arg3 =  (int64_t)args[2]->Int32Value(isolate->GetCurrentContext()).FromMaybe(0); \
-  int64_t arg4 =  (int64_t)args[3]->Int32Value(isolate->GetCurrentContext()).FromMaybe(0); \
-  int arg5 =  args[4]->Int32Value(isolate->GetCurrentContext()).FromMaybe(0); \
-  std::vector<std::string> vals;\
-  Instance * inst = NULL;\
-  Local<Object> res = Object::New(isolate);	\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1, arg2, &arg3, &arg4, (uint64_t)arg5, &vals);\
-		   if (s.error()) {\
-			   delete inst->conn;\		   
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   Handle<Array> elements = v8::Array::New(isolate,vals.size());\
-			   for (unsigned int i= 0; i<vals.size(); i++)\
-			   {\
-					elements->Set(CONTEXT_ARG i, v8::String::NewFromUtf8(isolate,vals[i].c_str())TO_LOCAL_CHECKED);\
-			   }\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"elements")TO_LOCAL_CHECKED, elements);\			   
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\  
-  Throw(isolate, "ssdb connect error");\   
-}
-
-	
-
-#define CMD_STR_to_INT(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\
-  if (args.Length() != 1 || !args[0]->IsString())\
-  {\
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \  
-  char * arg1 = *jsArg1;\
-  int64_t val;\
-  Instance * inst = NULL;\
-  Local<Object> res = Object::New(isolate);	\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1, &val);\
-		   if (s.error()) {\
-			   delete inst->conn;\		   
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"integer")TO_LOCAL_CHECKED, v8::Integer::New(isolate,val));	\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\  
-  Throw(isolate, "ssdb connect error");\
-}	
-
-
-#define CMD_STR(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\
-  if (args.Length() != 1 || !args[0]->IsString() )\
-  {\
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \
-  char * arg1 = *jsArg1;\
-  Instance * inst = NULL;\
-  Local<Object> res = Object::New(isolate);	\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1);\
-		   if (s.error()) {\
-			   delete inst->conn;\		   
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\  
-  Throw(isolate, "ssdb connect error");\
-}
-
-
-#define CMD_STR_STR_STR(name) static void SSDBCommand_##name(const v8::FunctionCallbackInfo<v8::Value>& args) {\
-  Isolate* isolate = args.GetIsolate();\
-    HandleScope outer_scope(isolate);\
-    Local<Context> context = isolate->GetCurrentContext();\
-    Context::Scope context_scope(context);\
-  if (args.Length() != 3 || !args[0]->IsString() || !args[1]->IsString() || !args[2]->IsString())\
-  {\
-	 Throw(isolate, "invalid arguments");\
-	  return;\
-  }\	
-  v8::String::Utf8Value jsArg1(isolate,Handle<v8::String>::Cast(args[0]));	  \
-  v8::String::Utf8Value jsArg2(isolate,Handle<v8::String>::Cast(args[1]));	  \
-  v8::String::Utf8Value jsArg3(isolate,Handle<v8::String>::Cast(args[2]));	  \  
-  char * arg1 = *jsArg1;\
-  char * arg2 = *jsArg2;\
-  char * arg3 = *jsArg3;\
-  Local<Object> res = Object::New(isolate);	\
-  Instance * inst = NULL;\
-  do {\
-	   inst = GetSSDBInstance(args.Holder(), arg1);\
-	   if (inst != NULL) {\
-		   ssdb::Status s = inst->conn->name(arg1, arg2, arg3);\
-		   if (s.error()) {\
-			   delete inst->conn;\		   
-			   inst->conn = NULL;\
-			   continue;\
-		   } else if (!s.ok()) {\				
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,0));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   } else {\
-			   res->Set(CONTEXT_ARG v8::String::NewFromUtf8(isolate,"status")TO_LOCAL_CHECKED, v8::Integer::New(isolate,1));\
-			   args.GetReturnValue().Set (res);	\
-			   return; \				
-		   }	\		   
-	   }\
-  } while(inst!=NULL);\  
-  Throw(isolate, "ssdb connect error");\
-}
-
-	
-	
 	
 static void SSDBGetNodeForId(const v8::FunctionCallbackInfo<v8::Value>& args) {
   Isolate* isolate = args.GetIsolate();
@@ -1007,7 +345,7 @@ static void SSDBNodeRequest(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	   if (inst != NULL) {
 		   resp = inst->conn->request(reqArgs);
 		   ssdb::Status s = ssdb::Status(resp);
-		   if (s.error()) {
+		   if (s.server_error()) {
 			   delete inst->conn;		   
 			   inst->conn = NULL;
 			   continue;
@@ -1064,7 +402,7 @@ static void SSDBRequest(const v8::FunctionCallbackInfo<v8::Value>& args) {
  	   if (inst != NULL) {
 		   resp = inst->conn->request(reqArgs);
 		   ssdb::Status s = ssdb::Status(resp);
-		   if (s.error()) {
+		   if (s.server_error()) {
 			   delete inst->conn;
 			   inst->conn = NULL;
 			   continue;
@@ -1089,42 +427,6 @@ static void SSDBRequest(const v8::FunctionCallbackInfo<v8::Value>& args) {
 }	
 		   
 	
-CMD_STR_to_INT(hclear)
-
-CMD_STR_STR(hdel)
-
-CMD_STR_to_INT(ttl)
-CMD_STR_STR(set)
-CMD_STR_STR_to_STR(getset)
-CMD_STR_STR_to_INT(setnx)  
-CMD_STR_STR_STR(hset)
-CMD_STR_STR_INT(setx)
-CMD_STR_to_STR(get)
-CMD_STR(del)
-CMD_STR_INT_to_INT(incr)
-
-CMD_STR_STR_to_INT(hexists)
-CMD_STR_STR_to_STR(hget)
-CMD_STR_STR_STR_INT_to_STRLIST(hscan)
-CMD_STR_STR_INT_to_INT(hincr)
-CMD_STR_STR_STR_INT_to_STRLIST(hkeys)
-
-CMD_STR_to_INT(zclear)
-CMD_STR_STR_INT(zset)
-CMD_STR_STR(zdel)
-CMD_STR_INT_INT_to_INT(zremrangebyscore)
-CMD_STR_INT_INT_to_INT(zcount)
-
-CMD_STR_STR_PINT_PINT_INT_STRLIST(zscan)
-CMD_STR_STR_PINT_PINT_INT_STRLIST(zkeys)
-CMD_STR_STR_PINT_PINT_INT_STRLIST(zrscan)
-
-CMD_STR_STR_to_INT(qpush)
-CMD_STR_INT_INT_to_STRLIST(qrange)
-CMD_STR_INT_INT_to_STRLIST(qslice)
-CMD_STR_to_INT(qclear)
-
-CMD_STR_STR_STR_INT_to_STRLIST(qlist)
 
 
 
@@ -1209,39 +511,6 @@ extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &con
 
 	ssdb->Set(v8::String::NewFromUtf8(isolate, "pipelinedCommands")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, SSDBPipelinedCommands));
 		
-	BIND_CMD(hset);
-	BIND_CMD(set);
-	BIND_CMD(getset);
-	BIND_CMD(setx);
-	BIND_CMD(setnx);
-	BIND_CMD(get);
-	BIND_CMD(del);
-	BIND_CMD(ttl);
-	BIND_CMD(incr);
-	
-	BIND_CMD(hexists);
-	BIND_CMD(hincr);
-	BIND_CMD(hscan);
-	BIND_CMD(hget);
-	BIND_CMD(hclear);
-	BIND_CMD(hkeys);
-	BIND_CMD(hdel);
-	
-	BIND_CMD(zdel);
-	BIND_CMD(zset);
-	BIND_CMD(zremrangebyscore);
-	BIND_CMD(zcount);
-	BIND_CMD(zscan);
-	BIND_CMD(zrscan);
-	BIND_CMD(zclear);
-	BIND_CMD(zkeys);
-	
-	
-	BIND_CMD(qpush);
-	BIND_CMD(qrange);
-	BIND_CMD(qslice);
-	BIND_CMD(qclear);
-	BIND_CMD(qlist);
 	
 	ssdb->SetInternalFieldCount(1);  
 	
