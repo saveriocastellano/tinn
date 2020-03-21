@@ -47,6 +47,9 @@ typedef struct {
 	
 } LogContext;
 
+#ifndef _WIN32 
+using namespace log4cxx; 
+#endif
 
 static Local<Value> Throw(Isolate* isolate, const char* message) {
 	return isolate->ThrowException(v8::Exception::Error(String::NewFromUtf8(isolate, message, NewStringType::kNormal).ToLocalChecked()));
