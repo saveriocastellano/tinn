@@ -313,7 +313,7 @@ static void HiredisCommandArgv(const v8::FunctionCallbackInfo<v8::Value>& args) 
 		}
 		v8::String::Utf8Value jsArg(isolate,Handle<v8::String>::Cast(args[i]));
 		redisArgs[i] = strdup(*jsArg);
-		//printf("redis arg %i: %s\n", i, redisArgs[i]);
+		printf("redis arg %i: %s\n", i, redisArgs[i]);
 		ss << redisArgs[i] << " ";
 	}
 	
