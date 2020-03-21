@@ -1007,3 +1007,35 @@ if (process.platform === 'win32') {
 	}
 }
 	
+if (typeof('Http')!='undefined') {
+	
+	Http.getHeaders = function() {
+		var params = Http.getParams();
+		var headers = {};
+		var HTTP_ = 'HTTP_';
+		for (var i=0; i<params.length; i++) {
+			var eq =  params[i].indexOf('=');
+			var name = params[i].substring(0, eq);
+			var st = name.indexOf(HTTP_);
+			if (st==0) {
+				name = name.substring(HTTP_.length).replace(/_/g,"-");
+				var hdr = '';
+				for (var j=0; j<name.length; j++) {
+					var c = name.charAt(j)
+					hdr += j==0 ? c : (name.charAt(j-1)=='-' ? c : c.toLowerCase()); 
+				}		
+				headers[hdr] = params[i].substring(eq+1);
+			}
+		}
+		return headers;
+	}
+
+	Http.getHeader = function(name){ 
+		name = 'HTTP_' + name.replace('-','_').toUpperCase();
+		return Http.getParam(name);
+	}
+	
+	
+}
+	
+	
