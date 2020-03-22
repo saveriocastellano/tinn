@@ -82,7 +82,7 @@ $ ./d8 examples/helloworld.js
 A binary version of TINN is available for x64 machines:  
 
 
-[tinn_windows_x64_0.0.1.zip (21.5 MB)](https://github.com/saveriocastellano/tinn/releases/download/0.1.1/tinn_windows_x64_0.0.1.zip)  
+[tinn_windows_x64_0.0.1.zip (21.5 MB)](https://github.com/saveriocastellano/tinn/releases/download/0.0.1/tinn_windows_x64_0.0.1.zip)  
 
 
 Unzip the content of tinn_windows_x64_0.0.1.zip in a directory. To run scripts use the d8.exe executable:
