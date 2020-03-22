@@ -2353,6 +2353,27 @@ void Shell::Initialize(Isolate* isolate) {
           v8::Isolate::kMessageLog);
 }
 
+
+void updateArguments(Local<Context> context, Isolate *isolate) {
+    Context::Scope scope(context);
+    const std::vector<const char*>& args = Shell::options.arguments;
+    int size = static_cast<int>(args.size());
+    Local<Array> array = Array::New(isolate, size);
+    for (int i = 0; i < size; i++) {
+      Local<String> arg =
+          v8::String::NewFromUtf8(isolate, args[i], v8::NewStringType::kNormal)
+              .ToLocalChecked();
+      Local<Number> index = v8::Number::New(isolate, i);
+      array->Set(context, index, arg).FromJust();
+    }
+    Local<String> name =
+        String::NewFromUtf8(isolate, "arguments", NewStringType::kInternalized)
+            .ToLocalChecked();
+    context->Global()->Set(context, name, array).FromJust();
+	
+}
+
+
 //#define QUOTE(...) #__VA_ARGS__
 Local<Context> Shell::CreateEvaluationContext(Isolate* isolate) {
   // This needs to be a critical section since this is not thread-safe
@@ -2367,21 +2388,7 @@ Local<Context> Shell::CreateEvaluationContext(Isolate* isolate) {
   }
   InitializeModuleEmbedderData(context);
   if (options.include_arguments) {
-    Context::Scope scope(context);
-    const std::vector<const char*>& args = options.arguments;
-    int size = static_cast<int>(args.size());
-    Local<Array> array = Array::New(isolate, size);
-    for (int i = 0; i < size; i++) {
-      Local<String> arg =
-          v8::String::NewFromUtf8(isolate, args[i], v8::NewStringType::kNormal)
-              .ToLocalChecked();
-      Local<Number> index = v8::Number::New(isolate, i);
-      array->Set(context, index, arg).FromJust();
-    }
-    Local<String> name =
-        String::NewFromUtf8(isolate, "arguments", NewStringType::kInternalized)
-            .ToLocalChecked();
-    context->Global()->Set(context, name, array).FromJust();
+	  updateArguments(context,isolate);
   }
 
    //attach modules
@@ -2850,6 +2857,9 @@ bool ends_with(const char* input, const char* suffix) {
 bool SourceGroup::Execute(Isolate* isolate) {
   bool success = true;
   int sourceCount = 0;
+  bool anyFile = false;
+  bool addToArguments = true;
+  std::vector<const char*> arguments;
   for (int i = begin_offset_; i < end_offset_; ++i) {
     const char* arg = argv_[i];
     if (strcmp(arg, "-e") == 0 && i + 1 < end_offset_) {
@@ -2889,31 +2899,48 @@ bool SourceGroup::Execute(Isolate* isolate) {
     } else if (arg[0] == '-') {
       // Ignore other options. They have been parsed already.
       continue;
-    }
-
-    // Use all other arguments as names of files to load and run.
-    HandleScope handle_scope(isolate);
-    Local<String> file_name =
-        String::NewFromUtf8(isolate, arg, NewStringType::kNormal)
-            .ToLocalChecked();
-    Local<String> source = ReadFile(isolate, arg);
-    if (source.IsEmpty()) {
-      printf("Error reading '%s'\n", arg);
-      base::OS::ExitProcess(1);
-    }
-	if (sourceCount == 0) {
-		Local<Object> process = Local<Object>::Cast(GetValue(isolate, isolate->GetCurrentContext(), isolate->GetCurrentContext()->Global(), "process"));
-		process->Set(isolate->GetCurrentContext(), String::NewFromUtf8(isolate, "mainModule", NewStringType::kNormal).ToLocalChecked(), file_name).FromJust();
+    } else if (!ends_with(arg, ".js") && !anyFile) {
+		addToArguments = true;
 	}
-	sourceCount++;
-	Shell::InitJS(isolate);
-    Shell::set_script_executed();
-    if (!Shell::ExecuteString(isolate, source, file_name, Shell::kNoPrintResult,
-                              Shell::kReportExceptions,
-                              Shell::kProcessMessageQueue)) {
-      success = false;
-      break;
-    }
+	
+	//Shell:        options.arguments.push_back(argv[j]);
+	
+	if (!addToArguments) {
+		// Use all other arguments as names of files to load and run.
+		anyFile = true;
+		printf("any file set to true for: %s\n", arg);
+		HandleScope handle_scope(isolate);
+		Local<String> file_name =
+			String::NewFromUtf8(isolate, arg, NewStringType::kNormal)
+				.ToLocalChecked();
+		Local<String> source = ReadFile(isolate, arg);
+		if (source.IsEmpty()) {
+		  printf("Error reading '%s'\n", arg);
+		  base::OS::ExitProcess(1);
+		}
+		if (sourceCount == 0) {
+			Local<Object> process = Local<Object>::Cast(GetValue(isolate, isolate->GetCurrentContext(), isolate->GetCurrentContext()->Global(), "process"));
+			process->Set(isolate->GetCurrentContext(), String::NewFromUtf8(isolate, "mainModule", NewStringType::kNormal).ToLocalChecked(), file_name).FromJust();
+		}
+		sourceCount++;
+		Shell::InitJS(isolate);
+		Shell::set_script_executed();
+		if (!Shell::ExecuteString(isolate, source, file_name, Shell::kNoPrintResult,
+								  Shell::kReportExceptions,
+								  Shell::kProcessMessageQueue)) {
+		  success = false;
+		  break;
+		}
+	} else {
+		arguments.push_back(arg);
+	}
+  }
+  if (addToArguments && Shell::options.include_arguments) {
+	  int sz = (int)arguments.size();
+	  for (int j=sz-1; j>=0; j--) {
+		  Shell::options.arguments.insert(Shell::options.arguments.begin(), arguments[j]);
+	  }
+	  updateArguments(isolate->GetCurrentContext(),isolate);
   }
   
   if (sourceCount == 0) {
