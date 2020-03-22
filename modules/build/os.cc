@@ -368,7 +368,7 @@ static void OSWriteFile(const v8::FunctionCallbackInfo<v8::Value>& args)
 	v8::String::Utf8Value jsName(isolate,Handle<v8::String>::Cast(args[0]));
 	v8::String::Utf8Value jsContent(isolate,Handle<v8::String>::Cast(args[1]));
 	char * buf = *jsContent;
-	FILE * f = fopen(*jsName, "w");
+	FILE * f = fopen(*jsName, "wb");
 	if (!f)
 	{
 		args.GetReturnValue().Set(v8::Boolean::New(isolate,false));
