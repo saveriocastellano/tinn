@@ -964,6 +964,7 @@ self.path = path;
 self.require = function(what) {
 	return Module._load(what, typeof(process.mainModule)=='object' ? process.mainModule : undefined);
 }
+
 })();
 
 if (typeof(process.mainModule)=='undefined') {
@@ -1006,5 +1007,118 @@ if (process.platform === 'win32') {
 		Http._openSocket(addr);
 	}
 }
+
+
+var pkg = new function() {
 	
+	this._parseHttpResponse = function(res) {
+		var hdrParts = res.split('\r\n\r\n');
+		if (hdrParts.length >=2 && hdrParts[0].indexOf('HTTP/')==0 && hdrParts[1].indexOf('HTTP/')==0) {
+			//we have the connect headers.. let's suppress it :)
+			res = hdrParts.slice(1).join('\r\n\r\n');			
+		}
+		var hdrEnd = res.indexOf('\r\n\r\n');
+		var headers = res.substr(0, hdrEnd);
+		var isChunked = (headers.indexOf('Transfer-Encoding: chunked')!=-1);
+		if (!isChunked) {
+			return res.substring(hdrEnd+4);
+		} 	
+		var i = hdrEnd+4;
+		var str = '';
+		var body = '';
+		var partLength = -1;
+		while(i < res.length) {
+			var c1 = res.charAt(i);
+			var c2 = res.charAt(i+1);
+			i++;
+			if (c1 == '\r' && c2 == '\n') {
+				if (partLength==-1) {
+					partLength = parseInt(str, 16);
+					str = '';	
+					continue;
+				}
+				body += str;
+				str = '';	
+				partLength = -1;
+				continue;
+			}
+			str += c1;
+		}
+		return body;
+	}
+	
+	this._searchAndGetAll = function(what) {
+		//print("search " + what);
+		var url = 'https://api.github.com/search/repositories?q='+ what;
+		if (this._verbose) print("url=" + url);
+		var res = Http.request(url);
+		if (res.result == 0) {
+			try {
+				var obj = JSON.parse(this._parseHttpResponse(res.response));
+				if (!obj.items) {
+					print("error response from repository: " + JSON.stringify(obj,null,4));
+					return null;
+				}
+				return obj;
+			} catch(e) {
+				//not a json
+				print("invalid reply from repository: " + e.message+ ": " + res.response);
+			}
+		} else {
+			//http failed
+			print("error sending request to repository");
+		}
+		return null;
+	}
+	
+	this._searchAndGetFirst = function(what, id) {
+		//14527085
+		var q = what;
+		if (id && !isNaN(parseInt(id))) q += '+id:' + id;
+		var obj = this._searchAndGetAll(q);
+		if (!obj) return;
+		if (obj.items == 0) {
+			print("Project not found: " + what + (isNaN(parseInt(id)) ? '' : ' ' + id));
+			return;
+		}
+		return obj.items[0];
+	}
+	
+	this.info = function(what, id) {
+		var obj = this._searchAndGetFirst(what, id);
+		if (!obj) return;
+		print(JSON.stringify(obj, null,4));
+		
+	}
+	
+	this.search = function(what){ 
+		var obj = this._searchAndGetAll(what);
+		print("Found "  +obj.total_count + " projects: "); 
+		for (var i=0; i<obj.items.length;i++) {
+			var proj = obj.items[i];
+			//print(JSON.stringify(obj.items[i],null,4));
+			print(''+proj.name + " " + proj.id + " - " + proj.description);
+			//break;
+		}	
+	}
+	
+	this._setVerbose = function(v){
+		print("set v: " + v);
+		this._verbose = v;
+	}
+	
+	
+}
+
+	
+if (typeof(pkg[arguments[0]])!='undefined') {
+	var args = arguments.slice(1);
+	print("args=" +args);
+	pkg._setVerbose(args.indexOf('-v')!=-1);
+	pkg[arguments[0]].apply(pkg, args);
+}	
+		
+	
+	
+
 	
