@@ -36,7 +36,7 @@ typedef struct {
 } JsContext;
 
 
-
+/*
 std::string Basename(const std::string& filename) {
 #ifdef _WIN32
   return filename.substr(0, filename.find_last_of("/\\"));
@@ -46,7 +46,7 @@ std::string Basename(const std::string& filename) {
   copy[filename.size()] = 0;
   return std::string(basename(copy));
 #endif   
-}
+}*/
 
 static Local<Value> Throw(Isolate* isolate, const char* message) {
 	return isolate->ThrowException(v8::Exception::Error(String::NewFromUtf8(isolate, message, NewStringType::kNormal).ToLocalChecked()));
@@ -123,7 +123,7 @@ static void Run(const v8::FunctionCallbackInfo<v8::Value>& args) {
   
   Local<Context> context = isolate->GetCurrentContext();
 
-  if (args.Length() == 0 || !args[0]->IsString())
+  if (args.Length() < 1 || !args[0]->IsString())
   {		
 		Throw(isolate,"invalid arguments");
   } 
@@ -157,13 +157,27 @@ static void Run(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	  }
 	  MaybeLocal<Script> maybe_script;
 	  
-	  v8::Handle<v8::Value> name = v8::String::NewFromUtf8(isolate, Basename(*file).c_str())TO_LOCAL_CHECKED;
-	  v8::ScriptOrigin origin(name);
-	  maybe_script = Script::Compile(isolate->GetCurrentContext(),source, &origin);
-	  
-      if (!maybe_script.ToLocal(&compiled_script)) {
+	  if (args.Length() > 1 && !args[1]->IsString()) {
+		  Throw(args.GetIsolate(), "invalid name argument");  
 		  return;
-      }	  
+	  }
+	  
+	  if (args.Length() > 1) {
+		  v8::ScriptOrigin origin(Handle<v8::String>::Cast(args[1]));
+		  maybe_script = Script::Compile(isolate->GetCurrentContext(), source, &origin);
+		  if (!maybe_script.ToLocal(&compiled_script)) {
+			  return;
+		  }	  
+
+	  } else{
+		  v8::Handle<v8::Value> name = v8::String::NewFromUtf8(isolate, *file)TO_LOCAL_CHECKED;
+		  v8::ScriptOrigin origin(name);
+		  maybe_script = Script::Compile(isolate->GetCurrentContext(), source, &origin);
+		  if (!maybe_script.ToLocal(&compiled_script)) {
+			  return;
+		  }	  
+	  }	  
+	  
 	  
 	  v8::Persistent<v8::Script, v8::CopyablePersistentTraits<v8::Script>> value(isolate, compiled_script);
 	  ScriptInfo si;
