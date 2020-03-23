@@ -1011,6 +1011,8 @@ if (process.platform === 'win32') {
 
 var pkg = new function() {
 	
+	this.GIT_URL = 'https://api.github.com';
+	
 	this._parseHttpResponse = function(res) {
 		var hdrParts = res.split('\r\n\r\n');
 		if (hdrParts.length >=2 && hdrParts[0].indexOf('HTTP/')==0 && hdrParts[1].indexOf('HTTP/')==0) {
@@ -1047,33 +1049,38 @@ var pkg = new function() {
 		return body;
 	}
 	
-	this._searchAndGetAll = function(what) {
-		//print("search " + what);
-		var url = 'https://api.github.com/search/repositories?q='+ what;
-		if (this._verbose) print("url=" + url);
+	this._gitRequest = function(url) {
+
+		this._vprint("git request " + url);
 		var retryCount = 0;
 		var retry = true;
 		do {
-			if (retryCount > 0 && this._verbose) print("retrying...");
+			if (retryCount > 0) this._vprint("retrying...");
 			var res = Http.request(url);
 			if (res.result == 0) {
 				try {
-					var obj = JSON.parse(this._parseHttpResponse(res.response));
-					if (!obj.items) {
-						print("error response from repository: " + JSON.stringify(obj,null,4));
-						return null;
-					}
-					return obj;
+					return JSON.parse(this._parseHttpResponse(res.response));
 				} catch(e) {
-					//not a json
-					print("invalid reply from repository");//: " + e.message+ ": " + res.response);
+					print("invalid reply from repository");
 				}
 			} else {
 				//http failed
-				print("error sending request to repository");
-			}		
-		} while(retry && retryCount++ <3)
-		return null;
+				print("error sending request to repository");				
+			}
+
+		} while(retry && retryCount++ <3);	
+	}
+	
+	this._searchAndGetAll = function(what) {
+		//print("search " + what);
+		var url = this.GIT_URL + '/search/repositories?q='+ what;		
+		var obj = this._gitRequest(url);
+		if (!obj) return null;
+		if (!obj.items) {
+			print("error response from repository: " + JSON.stringify(obj,null,4));
+			return null;
+		}		
+		return obj;
 	}
 	
 	this._searchAndGetFirst = function(what, id) {
@@ -1095,6 +1102,36 @@ var pkg = new function() {
 			return item;
 		}
 	}
+	
+	this._vprint = function(txt){ 
+		if (this._verbose) print(txt);
+	}
+	
+	this._tagsMatch = function(tagp1, tagp2, approx) {
+		if (tagp1.length != 3 || tagp2.length != 3) return false;
+		if (isNaN(parseInt(tagp1[0])) || isNaN(parseInt(tagp1[1])) || isNaN(parseInt(tagp1[2]))) return false;
+		if (isNaN(parseInt(tagp2[0])) || isNaN(parseInt(tagp2[1])) || isNaN(parseInt(tagp2[2]))) return false;
+		return tagp1[0] == tagp2[0] && (approx ? (tagp1[1] == tagp2[1]) : true);
+	}
+		
+	this._resolveTag = function(proj, tag) {
+		var reqTagParts = tag.substring(1).split("."); //remove the first ~ or ^
+		var tags = this._gitRequest(proj.tags_url);
+		this._vprint("got tags for " + proj.name + ": " + tags.map(t => t.name).join(" "));
+		//now match the requested tag...
+		for (var i=0; i<tags.length; i++){
+			var tagParts = tags[i].name.split(".");			
+			if (tag.charAt(0)=='~' && this._tagsMatch(reqTagParts, tagParts, true)) {
+				return tag;
+			} else if (tag.charAt(0)=='^' && this._tagsMatch(reqTagParts, tagParts)) {
+				return tag;
+			} else if (tag+'1'==tags[i].name) {
+				return tag;
+			}
+		}		
+		return null;
+	}
+	
 	
 	this.info = function(what, id) {
 		var obj = this._searchAndGetFirst(what, id);
@@ -1157,6 +1194,7 @@ var pkg = new function() {
 		
 		if (typeof(depWhat)=='undefined') {
 			var isGlobal = this._stripFlag('global');
+			var isSave = this._stripFlag('save');
 			this._stripOtherFlags();
 			if (this._args.length == 0) {
 				print("no package given... checking package.json");
@@ -1171,6 +1209,7 @@ var pkg = new function() {
 			obj = this._searchAndGetFirst.apply(this, this._args);		
 			if (!obj) return;
 			//print("tag=" + tag);
+			
 		} else {
 			var searchArgs = depWhat.split(' ');
 			obj = this._searchAndGetFirst.apply(this, searchArgs);		
@@ -1182,10 +1221,7 @@ var pkg = new function() {
 			instDir = depInstPath;
 			pkg = searchArgs[0];
 			
-			//REMOVE this:
-			//todo: handle ^/tilde
-			//https://api.github.com/repos/saveriocastellano/tinn/tags
-			if (tag.charAt(0)=='^') tag = tag.substring(1);
+			//if (tag.charAt(0)=='^') tag = tag.substring(1);
 		}		
 		
 		print("Installing " + obj.name + " in " + instDir);
@@ -1202,7 +1238,13 @@ var pkg = new function() {
 		var git = this._getGit();
 		var cmd = [git, 'clone'];
 		if (tag!='') {
-			cmd = cmd.concat(['-b', tag, '--single-branch']);
+			var resolvedTag = this._resolveTag(obj, tag);
+			if (!resolvedTag) {
+				print("the requested tag " + tag + " was not found for " + obj.name);
+				return;
+			}
+			cmd = cmd.concat(['-b', resolvedTag, '--single-branch']);
+			return;
 		}
 		cmd.push(obj.git_url);
 		cmd.push(pkgInstDir);
