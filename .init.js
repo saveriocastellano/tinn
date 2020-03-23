@@ -660,7 +660,7 @@ Module._initPaths = function() {
   }
 
   var tinnPath = process.env['TINN_PATH'];
-  if (nodePath) {
+  if (tinnPath) {
     paths = tinnPath.split(path.delimiter).concat(paths);
   }
 
@@ -1062,7 +1062,7 @@ var pkg = new function() {
 				return obj;
 			} catch(e) {
 				//not a json
-				print("invalid reply from repository: " + e.message+ ": " + res.response);
+				print("invalid reply from repository");//: " + e.message+ ": " + res.response);
 			}
 		} else {
 			//http failed
@@ -1073,15 +1073,22 @@ var pkg = new function() {
 	
 	this._searchAndGetFirst = function(what, id) {
 		//14527085
-		var q = what;
-		if (id && !isNaN(parseInt(id))) q += '+id:' + id;
-		var obj = this._searchAndGetAll(q);
+		//var q = what;
+		//if (id && !isNaN(parseInt(id))) q += '+id:' + id;
+		var obj = this._searchAndGetAll(what);
 		if (!obj) return;
 		if (obj.items == 0) {
-			print("Project not found: " + what + (isNaN(parseInt(id)) ? '' : ' ' + id));
+			print("Project not found: " + what + (id ? ' '+id : ''));
 			return;
 		}
-		return obj.items[0];
+		if (isNaN(parseInt(id))) {
+			return obj.items[0];
+		} else {
+			var item = obj.items.filter(function(el){
+				return (el.id == id);
+			})
+			return item;
+		}
 	}
 	
 	this.info = function(what, id) {
@@ -1089,7 +1096,107 @@ var pkg = new function() {
 		if (!obj) return;
 		print(JSON.stringify(obj, null,4));
 		
+	} 
+	
+	this._getInstalldir = function(isGlobal){
+		var tinnPath = process.env['TINN_PATH'];
+		
+		if (!isGlobal) {
+			return OS.cwd();
+		} else if (tinnPath && OS.isDirAndReadable(tinnPath)){
+			return tinnPath;
+		} else {
+			return process.cwd();
+		}
 	}
+	
+	this._stripFlag = function(flag) { 
+		var found = this._args.indexOf('--'+flag);
+		if (found==-1) found = this._args.indexOf('-'+flag.charAt(0));
+		if (found!=-1) {
+			this._args.splice(found, 1);
+			return true;
+		}
+		return false;
+	}
+	
+	this._stripOtherFlags = function(){
+		var args = [];
+		for (var i=0;i<this._args.length; i++) { 
+			if (this._args[i].charAt(0)!='-') args.push(this._args[i]);
+		}
+		this._args = args;
+	}
+	
+	this.install = function() {
+		var isGlobal = this._stripFlag('global');
+		this._stripOtherFlags();
+		if (this._args.length == 0) {
+			print("no package given... checking package.json");
+			return;
+		}
+		var instDir = path.resolve(this._getInstalldir(isGlobal), 'tinn_modules');
+		
+		var pkg = this._args[0].split("@");		
+		var tag = '';
+		if (pkg.length>1) tag = pkg[1];
+		this._args[0] = pkg = pkg[0];		
+	
+		var obj = this._searchAndGetFirst.apply(this, this._args);		
+		if (!obj) return;
+		print("tag=" + tag);
+		print("Installing " + obj.name + " in " + instDir);
+		if (!OS.isDirAndReadable(instDir)){					
+			OS.mkdir(instDir);
+			print("created install directory: " + instDir);
+		}
+		var pkgInstDir = path.resolve(instDir, pkg);
+		if (OS.isDirAndReadable(pkgInstDir)) {
+			print(pkg + ' is already installed in ' + pkgInstDir);
+			return;
+		}		
+	}
+	
+	
+	this._removeTree = function(dir){ 
+		var files = OS.listDir(dir);
+		for (var i=0; i<files.length; i++){
+			print("file: " + files[i]);
+			var file = path.resolve(dir, files[i]);
+			if (OS.isFileAndReadable(file)) {
+				//print("removing file:" + file);
+				OS.unlink(file);
+			} else {
+				//print("removing dir:" + file);
+				this._removeTree(file);
+			}
+		}
+		print("rem: dir: " + dir);
+		OS.rmdir(dir);
+	}
+	
+	this.remove = function(){
+		var isGlobal = this._stripFlag('global');
+		var isSave = this._stripFlag('save');
+		this._stripOtherFlags();
+		
+		if (this._args.length == 0) {
+			print("no package given...");
+			return;
+		}	
+		
+		var pkg = this._args[0];
+		var instDir = path.resolve(this._getInstalldir(isGlobal), 'tinn_modules');
+		var pkgInstDir = path.resolve(instDir, pkg);
+		if (!OS.isDirAndReadable(pkgInstDir)) {
+			print("Package " + pkg + " not found in " + instDir);
+			return;
+		}
+		print("Removing " + pkg + " from " + instDir);
+		this._removeTree(pkgInstDir);
+	}
+	
+	this.uninstall = this.remove;
 	
 	this.search = function(what){ 
 		var obj = this._searchAndGetAll(what);
@@ -1103,17 +1210,19 @@ var pkg = new function() {
 	}
 	
 	this._setVerbose = function(v){
-		print("set v: " + v);
 		this._verbose = v;
 	}
 	
+	this._setArgs = function(args){
+		this._args = args;
+	}
 	
 }
 
 	
 if (typeof(pkg[arguments[0]])!='undefined') {
 	var args = arguments.slice(1);
-	print("args=" +args);
+	pkg._setArgs(args);
 	pkg._setVerbose(args.indexOf('-v')!=-1);
 	pkg[arguments[0]].apply(pkg, args);
 }	
