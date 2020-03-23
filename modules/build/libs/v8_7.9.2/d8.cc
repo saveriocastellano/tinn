@@ -267,6 +267,32 @@ void loadModules()
 #endif 	
 }
 
+#ifdef _WIN32
+static HANDLE stdoutHandle;
+static DWORD outModeInit;
+
+void setupConsole(void) {
+ 	DWORD outMode = 0;
+ 	stdoutHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+ 
+ 	if(stdoutHandle == INVALID_HANDLE_VALUE) {
+ 		exit(GetLastError());
+ 	}
+ 	
+ 	if(!GetConsoleMode(stdoutHandle, &outMode)) {
+ 		exit(GetLastError());
+ 	}
+ 
+ 	outModeInit = outMode;
+ 	
+     // Enable ANSI escape codes
+ 	outMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+ 
+ 	if(!SetConsoleMode(stdoutHandle, outMode)) {
+ 		exit(GetLastError());
+ 	}	
+}
+#endif 
 
 
 namespace v8 {
@@ -3878,6 +3904,9 @@ void Shell::WaitForRunningWorkers() {
 
 int Shell::Main(int argc, char* argv[]) {
   v8::base::EnsureConsoleOutput();
+#ifdef _WIN32  
+  setupConsole();
+#endif  
   if (!SetOptions(argc, argv)) return 1;
 
   v8::V8::InitializeICUDefaultLocation(argv[0], options.icu_data_file);
