@@ -1051,23 +1051,28 @@ var pkg = new function() {
 		//print("search " + what);
 		var url = 'https://api.github.com/search/repositories?q='+ what;
 		if (this._verbose) print("url=" + url);
-		var res = Http.request(url);
-		if (res.result == 0) {
-			try {
-				var obj = JSON.parse(this._parseHttpResponse(res.response));
-				if (!obj.items) {
-					print("error response from repository: " + JSON.stringify(obj,null,4));
-					return null;
+		var retryCount = 0;
+		var retry = true;
+		do {
+			if (retryCount > 0 && this._verbose) print("retrying...");
+			var res = Http.request(url);
+			if (res.result == 0) {
+				try {
+					var obj = JSON.parse(this._parseHttpResponse(res.response));
+					if (!obj.items) {
+						print("error response from repository: " + JSON.stringify(obj,null,4));
+						return null;
+					}
+					return obj;
+				} catch(e) {
+					//not a json
+					print("invalid reply from repository");//: " + e.message+ ": " + res.response);
 				}
-				return obj;
-			} catch(e) {
-				//not a json
-				print("invalid reply from repository");//: " + e.message+ ": " + res.response);
-			}
-		} else {
-			//http failed
-			print("error sending request to repository");
-		}
+			} else {
+				//http failed
+				print("error sending request to repository");
+			}		
+		} while(retry && retryCount++ <3)
 		return null;
 	}
 	
@@ -1128,50 +1133,124 @@ var pkg = new function() {
 		this._args = args;
 	}
 	
-	this.install = function() {
-		var isGlobal = this._stripFlag('global');
-		this._stripOtherFlags();
-		if (this._args.length == 0) {
-			print("no package given... checking package.json");
-			return;
+	this._getGit = function(){ 
+		var file;
+		try {
+			if (process.platform=='win32') {
+				file = OS.exec(['where','git', '2>', 'nul']).output.split('\n')[0];
+			} else {
+				file = OS.exec(['which','git']).output.split('\n')[0];
+			}
+		} catch(e) {}
+		if (!OS.isFileAndReadable(file)) {
+			print("'git' not found. Make sure 'git' is installed and in PATH");
+			return null; 
 		}
-		var instDir = path.resolve(this._getInstalldir(isGlobal), 'tinn_modules');
-		
-		var pkg = this._args[0].split("@");		
+		return (process.platform=='win32') ? '"'+file+'"' : file;
+	}
+	//git clone -b <tag_name> --single-branch <repo_url> [<dest_dir>] 
+	this.install = function(depWhat, depVersion, depInstPath) {
 		var tag = '';
-		if (pkg.length>1) tag = pkg[1];
-		this._args[0] = pkg = pkg[0];		
-	
-		var obj = this._searchAndGetFirst.apply(this, this._args);		
-		if (!obj) return;
-		print("tag=" + tag);
+		var pkg;
+		var instDir;
+		var obj;
+		
+		if (typeof(depWhat)=='undefined') {
+			var isGlobal = this._stripFlag('global');
+			this._stripOtherFlags();
+			if (this._args.length == 0) {
+				print("no package given... checking package.json");
+				return;
+			}
+			instDir = path.resolve(this._getInstalldir(isGlobal), 'tinn_modules');
+			
+			pkg = this._args[0].split("@");		
+			if (pkg.length>1) tag = pkg[1];
+			this._args[0] = pkg = pkg[0];		
+		
+			obj = this._searchAndGetFirst.apply(this, this._args);		
+			if (!obj) return;
+			//print("tag=" + tag);
+		} else {
+			var searchArgs = depWhat.split(' ');
+			obj = this._searchAndGetFirst.apply(this, searchArgs);		
+			if (!obj) {
+				print("dependency not found: " + depWhat);
+				return;
+			}	
+			tag = depVersion;
+			instDir = depInstPath;
+			pkg = searchArgs[0];
+			
+			//REMOVE this:
+			//todo: handle ^/tilde
+			//https://api.github.com/repos/saveriocastellano/tinn/tags
+			if (tag.charAt(0)=='^') tag = tag.substring(1);
+		}		
+		
 		print("Installing " + obj.name + " in " + instDir);
 		if (!OS.isDirAndReadable(instDir)){					
 			OS.mkdir(instDir);
 			print("created install directory: " + instDir);
 		}
+		
 		var pkgInstDir = path.resolve(instDir, pkg);
 		if (OS.isDirAndReadable(pkgInstDir)) {
 			print(pkg + ' is already installed in ' + pkgInstDir);
 			return;
 		}		
+		var git = this._getGit();
+		var cmd = [git, 'clone'];
+		if (tag!='') {
+			cmd = cmd.concat(['-b', tag, '--single-branch']);
+		}
+		cmd.push(obj.git_url);
+		cmd.push(pkgInstDir);
+		var res = OS.exec(cmd);
+		
+		
+		if (OS.isDirAndReadable(pkgInstDir)) {
+			//deps?
+			var pkgJsonPath = path.resolve(pkgInstDir, 'package.json');
+			
+			//REMOVE ME
+			if (!OS.isFileAndReadable(pkgJsonPath) && obj.name == 'tinn_web') {				
+				var json = JSON.stringify({
+					"dependencies": {
+						"color-convert": "1.9.0"
+					}				
+				});
+				OS.writeFile(pkgJsonPath, json);
+			}
+			//END
+			
+			if (OS.isFileAndReadable(pkgJsonPath)) {
+				var pkgJson = JSON.parse(OS.readFile(pkgJsonPath));
+				print("handle " + obj.name + " deps..");
+				for (var dep in pkgJson.dependencies) {
+					print("Installing dependency: " + dep + ' ' + pkgJson.dependencies[dep]);
+					this.install(dep, pkgJson.dependencies[dep], path.resolve(pkgInstDir, 'tinn_modules'));
+				}
+			} else{
+				print("no deps");
+			}
+			
+			print('\n'+pkg + ' ready.');
+		}
 	}
 	
 	
 	this._removeTree = function(dir){ 
 		var files = OS.listDir(dir);
 		for (var i=0; i<files.length; i++){
-			print("file: " + files[i]);
+			//print("file: " + files[i]);
 			var file = path.resolve(dir, files[i]);
 			if (OS.isFileAndReadable(file)) {
-				//print("removing file:" + file);
 				OS.unlink(file);
 			} else {
-				//print("removing dir:" + file);
 				this._removeTree(file);
 			}
 		}
-		print("rem: dir: " + dir);
 		OS.rmdir(dir);
 	}
 	
@@ -1224,7 +1303,7 @@ if (typeof(pkg[arguments[0]])!='undefined') {
 	var args = arguments.slice(1);
 	pkg._setArgs(args);
 	pkg._setVerbose(args.indexOf('-v')!=-1);
-	pkg[arguments[0]].apply(pkg, args);
+	pkg[arguments[0]].apply(pkg);
 }	
 		
 	

@@ -504,8 +504,16 @@ static void OSUnlink(const v8::FunctionCallbackInfo<v8::Value>& args)
 		return;
 	}	
 	
-	v8::String::Utf8Value jsPath(isolate,Handle<v8::String>::Cast(args[0]));	
+	v8::String::Utf8Value jsPath(isolate,Handle<v8::String>::Cast(args[0]));
+#ifdef _WIN32
+	DWORD attr = GetFileAttributes(*jsPath);
+	attr &= ~FILE_ATTRIBUTE_READONLY;
+	SetFileAttributes(*jsPath, attr );
+    bool res = DeleteFileA(*jsPath);
+	args.GetReturnValue().Set( v8::Integer::New(isolate, res ? 0 : -1));
+#else
 	args.GetReturnValue().Set( v8::Integer::New(isolate, unlink(*jsPath)));
+#endif	
 }
 
 static void OSRmdir(const v8::FunctionCallbackInfo<v8::Value>& args)
