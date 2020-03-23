@@ -3232,8 +3232,13 @@ void Worker::PostMessageOut(const v8::FunctionCallbackInfo<v8::Value>& args) {
 bool Shell::SetOptions(int argc, char* argv[]) {
   bool logfile_per_isolate = false;
   for (int i = 0; i < argc; i++) {
-    if (strcmp(argv[i], "--") == 0) {
-      argv[i] = nullptr;
+	  
+    if (strcmp(argv[i], "--") == 0 || (!ends_with(argv[i], ".js") && i>0 && strncmp(argv[i], "--", 2) != 0)) {
+      if (strcmp(argv[i], "--") != 0) {
+		  options.arguments.push_back(argv[i]);
+		  Shell::set_script_executed();
+	  }
+	  argv[i] = nullptr;
       for (int j = i + 1; j < argc; j++) {
         options.arguments.push_back(argv[j]);
         argv[j] = nullptr;
