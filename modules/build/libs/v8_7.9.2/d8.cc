@@ -89,6 +89,7 @@ typedef bool (*moduleInitFunc)();
 typedef struct {
 	moduleAttachFunc attach;
 	moduleInitFunc init;
+	std::string path;
 } NativeModule;
 
 std::vector<NativeModule *> gModules;
@@ -204,10 +205,11 @@ void loadModules()
 					NativeModule * nm = new NativeModule();
 					nm->attach = maf;
 					nm->init = mif;
+					nm->path = lpath;  
 					if (nm->init())
 					{
 						gModules.push_back(nm);
-						printf("loaded module: %s\n", lpath.c_str());
+						//printf("loaded module: %s\n", lpath.c_str());
 					} else
 					{
 						printf("module %s failed to initialize\n", lpath.c_str());
@@ -248,10 +250,11 @@ void loadModules()
 		NativeModule * nm = new NativeModule();
 		nm->attach = (moduleAttachFunc)dlsym(handle, "attach");
 		nm->init = (moduleInitFunc)dlsym(handle, "init");
+		nm->path = std::string(modulePath);  
 		if (nm->init())
 		{
 			gModules.push_back(nm);
-			printf("loaded module: %s\n", modulePath);
+			//printf("loaded module: %s\n", modulePath);
 		} else
 		{
 			printf("module %s failed to initialize\n", modulePath);
@@ -4084,6 +4087,10 @@ int Shell::Main(int argc, char* argv[]) {
     // Run interactive shell if explicitly requested or if no script has been
     // executed, but never on --test
     if (use_interactive_shell()) {
+	  int modNum = (int)gModules.size();
+	  for (int k=0; k<modNum; k++) {
+		printf("loaded module %s\n", gModules[k]->path.c_str()); 
+	  }	  
       RunShell(isolate);
     }
 
