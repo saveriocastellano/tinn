@@ -1011,6 +1011,132 @@ if (process.platform === 'win32') {
 
 var pkg = new function() {
 	
+	this._cc = new function() {;
+	
+		this.prefix = '\x1b['
+
+		this.up = function up (num) {
+		  return this.prefix + (num || '') + 'A'
+		}
+
+		this.down = function down (num) {
+		  return this.prefix + (num || '') + 'B'
+		}
+
+		this.forward = function forward (num) {
+		  return this.prefix + (num || '') + 'C'
+		}
+
+		this.back = function back (num) {
+		  return this.prefix + (num || '') + 'D'
+		}
+
+		this.nextLine = function nextLine (num) {
+		  return this.prefix + (num || '') + 'E'
+		}
+
+		this.previousLine = function previousLine (num) {
+		  return this.prefix + (num || '') + 'F'
+		}
+
+		this.horizontalAbsolute = function(num) {
+		  if (num == null) throw new Error('horizontalAboslute requires a column to position to')
+		  return this.prefix + num + 'G'
+		}
+
+		this.eraseData = function eraseData () {
+		  return this.prefix + 'J'
+		}
+
+		this.eraseLine = function eraseLine () {
+		  return this.prefix + 'K'
+		}
+
+		this.goto = function (x, y) {
+		  return this.prefix + y + ';' + x + 'H'
+		}
+
+		this.gotoSOL = function () {
+		  return '\r'
+		}
+
+		this.beep = function () {
+		  return '\x07'
+		}
+
+		this.hideCursor = function hideCursor () {
+		  return this.prefix + '?25l'
+		}
+
+		this.showCursor = function showCursor () {
+		  return this.prefix + '?25h'
+		}
+
+		this.colors = {
+		  reset: 0,
+		// styles
+		  bold: 1,
+		  italic: 3,
+		  underline: 4,
+		  inverse: 7,
+		// resets
+		  stopBold: 22,
+		  stopItalic: 23,
+		  stopUnderline: 24,
+		  stopInverse: 27,
+		// colors
+		  white: 37,
+		  black: 30,
+		  blue: 34,
+		  cyan: 36,
+		  green: 32,
+		  magenta: 35,
+		  red: 31,
+		  yellow: 33,
+		  bgWhite: 47,
+		  bgBlack: 40,
+		  bgBlue: 44,
+		  bgCyan: 46,
+		  bgGreen: 42,
+		  bgMagenta: 45,
+		  bgRed: 41,
+		  bgYellow: 43,
+
+		  grey: 90,
+		  brightBlack: 90,
+		  brightRed: 91,
+		  brightGreen: 92,
+		  brightYellow: 93,
+		  brightBlue: 94,
+		  brightMagenta: 95,
+		  brightCyan: 96,
+		  brightWhite: 97,
+
+		  bgGrey: 100,
+		  bgBrightBlack: 100,
+		  bgBrightRed: 101,
+		  bgBrightGreen: 102,
+		  bgBrightYellow: 103,
+		  bgBrightBlue: 104,
+		  bgBrightMagenta: 105,
+		  bgBrightCyan: 106,
+		  bgBrightWhite: 107
+		}
+
+		this.color = function color (colorWith) {
+		  if (arguments.length !== 1 || !Array.isArray(colorWith)) {
+			colorWith = Array.prototype.slice.call(arguments)
+		  }
+		  var self = this;
+		  return this.prefix + colorWith.map(function(c){return self.colorNameToCode(c);}).join(';') + 'm'
+		}
+
+		this.colorNameToCode = function(color) {
+		  if (this.colors[color] != null) return this.colors[color]
+		  throw new Error('Unknown color or style name: ' + color)
+		}
+	}
+
 	this.GIT_URL = 'https://api.github.com';
 	
 	this._parseHttpResponse = function(res) {
@@ -1067,12 +1193,19 @@ var pkg = new function() {
 				//http failed
 				print("error sending request to repository");				
 			}
-
-		} while(retry && retryCount++ <3);	
+			if (retryCount > 4) {
+				OS.sleep(1000);
+			} else if (retryCount > 6) {
+				OS.sleep(2000);
+			} else if (retryCount > 8) {
+				OS.sleep(2500);
+			} else {
+				OS.sleep(200);
+			}
+		} while(retry && retryCount++ <10);	
 	}
 	
 	this._searchAndGetAll = function(what) {
-		//print("search " + what);
 		var url = this.GIT_URL + '/search/repositories?q='+ what;		
 		var obj = this._gitRequest(url);
 		if (!obj) return null;
@@ -1084,13 +1217,10 @@ var pkg = new function() {
 	}
 	
 	this._searchAndGetFirst = function(what, id) {
-		//14527085
-		//var q = what;
-		//if (id && !isNaN(parseInt(id))) q += '+id:' + id;
 		var obj = this._searchAndGetAll(what);
 		if (!obj) return;
 		if (obj.items == 0) {
-			print("Project not found: " + what + (id ? ' '+id : ''));
+			this._eprint("Project not found: " + what + (id ? ' '+id : ''));
 			return;
 		}
 		if (isNaN(parseInt(id))) {
@@ -1107,26 +1237,46 @@ var pkg = new function() {
 		if (this._verbose) print(txt);
 	}
 	
+	this._eprint = function(txt){ 
+		print(this._cc.color('white','bgRed', 'bold') + 'ERROR' + this._cc.color('reset') + ' ' + txt);
+	}
+
+	this._gprint = function(txt){ 
+		print(this._cc.color('white','bgGreen', 'bold') + 'SUCCESS' + this._cc.color('reset') + ' ' + txt);
+	}
+	
+	this._wprint = function(txt){ 
+		print(this._cc.color('white','bgMagenta', 'bold') + 'WARN' + this._cc.color('reset') + ' ' + txt);
+	}
+	
 	this._tagsMatch = function(tagp1, tagp2, approx) {
 		if (tagp1.length != 3 || tagp2.length != 3) return false;
 		if (isNaN(parseInt(tagp1[0])) || isNaN(parseInt(tagp1[1])) || isNaN(parseInt(tagp1[2]))) return false;
 		if (isNaN(parseInt(tagp2[0])) || isNaN(parseInt(tagp2[1])) || isNaN(parseInt(tagp2[2]))) return false;
 		return tagp1[0] == tagp2[0] && (approx ? (tagp1[1] == tagp2[1]) : true);
 	}
+	
+	this._isTagCompatible = function(tag, tryTag) {
+		var reqTagParts = tag.substring(1).split("."); //remove the first ~ or ^
+		var tagParts = tryTag.substring(tryTag.charAt(0)=='v' ? 1 : 0).split(".");			
+		if (tag.charAt(0)=='~' && this._tagsMatch(reqTagParts, tagParts, true)) {
+			return tryTag;
+		} else if (tag.charAt(0)=='^' && this._tagsMatch(reqTagParts, tagParts)) {
+			return tryTag;
+		} else if (tag==tryTag) {
+			return tag;
+		}
+		return null;
+	}
 		
 	this._resolveTag = function(proj, tag) {
-		var reqTagParts = tag.substring(1).split("."); //remove the first ~ or ^
 		var tags = this._gitRequest(proj.tags_url);
 		this._vprint("got tags for " + proj.name + ": " + tags.map(t => t.name).join(" "));
 		//now match the requested tag...
 		for (var i=0; i<tags.length; i++){
-			var tagParts = tags[i].name.split(".");			
-			if (tag.charAt(0)=='~' && this._tagsMatch(reqTagParts, tagParts, true)) {
-				return tag;
-			} else if (tag.charAt(0)=='^' && this._tagsMatch(reqTagParts, tagParts)) {
-				return tag;
-			} else if (tag+'1'==tags[i].name) {
-				return tag;
+			var res = this._isTagCompatible(tag, tags[i].name);
+			if (res) {
+				return res;
 			}
 		}		
 		return null;
@@ -1185,16 +1335,51 @@ var pkg = new function() {
 		}
 		return (process.platform=='win32') ? '"'+file+'"' : file;
 	}
+	
+	this._getPackageJson = function(pkgInstDir){ 
+		var instPkgJsonPath = path.resolve(pkgInstDir, 'package.json');	
+		try {
+			var instPkgJson = JSON.parse(read(instPkgJsonPath));
+			return instPkgJson;
+		} catch (e) {
+			return null;
+		}			
+	}
+	
+	this._getPackageVersion = function(pkgInstDir) { 
+		var instPkgJson = this._getPackageJson(pkgInstDir);
+		if (instPkgJson) return null;
+		if (typeof(instPkgJson.version)=='undefined') return null;
+		return instPkgJson.version;	
+	}
+	
+	this._getPackageDeps = function(pkgInstDir) { 
+		var instPkgJson = this._getPackageJson(pkgInstDir);
+		if (!instPkgJson) return null;
+		if (typeof(instPkgJson.dependencies)=='undefined') return null;
+		return instPkgJson.dependencies;	
+	}	
+	
 	//git clone -b <tag_name> --single-branch <repo_url> [<dest_dir>] 
-	this.install = function(depWhat, depVersion, depInstPath) {
+	this.install = function(depWhat, depVersion, depInstPath, ctx) {
 		var tag = '';
 		var pkg;
 		var instDir;
 		var obj;
+		var isSave = false;
+		var isRoot = false;
+		if (!ctx) {
+			ctx = {
+				installed: [],
+				failed: [],
+				cwd: OS.cwd()
+		    };		
+			isRoot = true;
+		}
 		
 		if (typeof(depWhat)=='undefined') {
 			var isGlobal = this._stripFlag('global');
-			var isSave = this._stripFlag('save');
+			isSave = true; //this._stripFlag('save');
 			this._stripOtherFlags();
 			if (this._args.length == 0) {
 				print("no package given... checking package.json");
@@ -1207,24 +1392,29 @@ var pkg = new function() {
 			this._args[0] = pkg = pkg[0];		
 		
 			obj = this._searchAndGetFirst.apply(this, this._args);		
-			if (!obj) return;
+			if (!obj) {
+				print("\n");
+				this._eprint("package installation failed.");
+				return;
+			}
 			//print("tag=" + tag);
 			
 		} else {
 			var searchArgs = depWhat.split(' ');
 			obj = this._searchAndGetFirst.apply(this, searchArgs);		
 			if (!obj) {
-				print("dependency not found: " + depWhat);
+				ctx.failed.push({
+					pkg: obj,
+					tag: depVersion
+				});				
+				this._eprint("dependency not found: " + depWhat + (depVersion!='' ? '@'+depVersion : ''));
 				return;
 			}	
 			tag = depVersion;
 			instDir = depInstPath;
 			pkg = searchArgs[0];
-			
-			//if (tag.charAt(0)=='^') tag = tag.substring(1);
 		}		
 		
-		print("Installing " + obj.name + " in " + instDir);
 		if (!OS.isDirAndReadable(instDir)){					
 			OS.mkdir(instDir);
 			print("created install directory: " + instDir);
@@ -1232,24 +1422,55 @@ var pkg = new function() {
 		
 		var pkgInstDir = path.resolve(instDir, pkg);
 		if (OS.isDirAndReadable(pkgInstDir)) {
-			print(pkg + ' is already installed in ' + pkgInstDir);
-			return;
+			var verifyFailMsg = null;
+			
+			var pkgVersion = this._getPackageVersion(pkgInstDir); 
+			if (!pkgVersion || !this._isTagCompatible(tag, instPkgJson.version)) {
+				verifyFailMsg = pkg + ' is already installed in ' + pkgInstDir + " but it's version could not be verified to be compatible with the requested one."; 
+			}
+			
+			if (verifyFailMsg) {
+				ctx.failed.push({
+					pkg: obj,
+					tag: tag
+				});				
+				this._eprint(verifyFailMsg);
+				this._eprint("You can try to remove this package if won't break other dependencies");
+				if (isRoot) {
+					print("\n");
+					this._eprint("package installation failed.");				
+				}
+				return;				
+			} else {
+				print(pkg + ' is already installed in ' + pkgInstDir);
+				return;
+			}
 		}		
+
+		print("Installing " + obj.name + " in " + instDir);
 		var git = this._getGit();
 		var cmd = [git, 'clone'];
 		if (tag!='') {
 			var resolvedTag = this._resolveTag(obj, tag);
 			if (!resolvedTag) {
-				print("the requested tag " + tag + " was not found for " + obj.name);
+				ctx.failed.push({
+					pkg: obj,
+					tag: tag
+				});
+				this._eprint("the requested tag " + tag + " was not found for " + obj.name);
+				if (isRoot) {
+					print("\n");
+					this._eprint("package installation failed.");					
+				}
 				return;
 			}
+			tag = resolvedTag;
 			cmd = cmd.concat(['-b', resolvedTag, '--single-branch']);
-			return;
 		}
 		cmd.push(obj.git_url);
 		cmd.push(pkgInstDir);
+		this._vprint(cmd.join(' '));
 		var res = OS.exec(cmd);
-		
 		
 		if (OS.isDirAndReadable(pkgInstDir)) {
 			//deps?
@@ -1259,25 +1480,85 @@ var pkg = new function() {
 			if (!OS.isFileAndReadable(pkgJsonPath) && obj.name == 'tinn_web') {				
 				var json = JSON.stringify({
 					"dependencies": {
-						"color-convert": "1.9.0"
+						"detect-newline": "^2.1.0",
+						"uuid": "^3.3.2",
+						"bluebird": "^3.5.3",
 					}				
-				});
+				},null,4);
 				OS.writeFile(pkgJsonPath, json);
 			}
 			//END
 			
 			if (OS.isFileAndReadable(pkgJsonPath)) {
 				var pkgJson = JSON.parse(OS.readFile(pkgJsonPath));
-				print("handle " + obj.name + " deps..");
-				for (var dep in pkgJson.dependencies) {
-					print("Installing dependency: " + dep + ' ' + pkgJson.dependencies[dep]);
-					this.install(dep, pkgJson.dependencies[dep], path.resolve(pkgInstDir, 'tinn_modules'));
+				if (typeof(pkgJson.dependencies)!='undefined') {
+					this._vprint("handle " + obj.name + " deps..");
+					for (var dep in pkgJson.dependencies) {
+						print("Installing dependency: " + dep + ' ' + pkgJson.dependencies[dep]);
+						this.install(dep, pkgJson.dependencies[dep], instDir, ctx);
+					}
 				}
 			} else{
 				print("no deps");
 			}
 			
-			print('\n'+pkg + ' ready.');
+			ctx.installed.push({
+				pkg: obj,
+				tag: tag,
+				dir: pkgInstDir
+			});
+		} else {
+			if (isRoot) {
+				print('\n');
+				this._eprint("package installation failed.");
+				return;
+			} else {
+				ctx.failed.push({
+					pkg: obj,
+					tag: tag
+				});
+				this._eprint("failed to get "+ obj.name);				
+				return;
+			}
+		}
+		
+		if (isRoot) {
+			if (ctx.failed.length > 0) {
+				print('one or more packages failed to install, rolling back...');
+				for(var i=0; i<ctx.installed.length; i++){
+					this._wprint("reverted installation of package " + ctx.installed[i].pkg.name);
+					this._removeTree(ctx.installed[i].dir)					
+				}
+				print('\n');
+				this._eprint("package installation failed.");
+				return;
+			} else {
+				print('\n');
+				this._gprint(pkg + ' ready.');
+			}
+		} else {
+			this._gprint(pkg + ' installed');	
+		}
+		
+		if (isRoot && ctx.installed.length > 0 && isSave) {
+			var packageJsonPath = path.resolve(ctx.cwd, 'package.json');
+			//print("updating package json " + packageJson);
+			if (!OS.isFileAndReadable(packageJsonPath)) {
+				this._wprint('package.json not found: ' + packageJsonPath);
+			} else {
+				try {
+					var packageJson = JSON.parse(read(packageJsonPath));
+					if (typeof(packageJson.dependencies)=='undefined') packageJson.dependencies = {};
+					var pkgVersion = this._getPackageVersion(pkgInstDir); 
+					if (!pkgVersion) pkgVersion = tag;
+					packageJson.dependencies[pkg] = pkgVersion;
+					OS.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 4));
+					print("updated package.json");
+ 
+				} catch(e) {
+					this._wprint('invalid content found in package.json: ' + packageJsonPath);					
+				}
+			}
 		}
 	}
 	
@@ -1296,25 +1577,102 @@ var pkg = new function() {
 		OS.rmdir(dir);
 	}
 	
-	this.remove = function(){
+	this.remove = function(pkg, pkgJson){
 		var isGlobal = this._stripFlag('global');
-		var isSave = this._stripFlag('save');
+		var isRoot = true;
+		//var isSave = this._stripFlag('save');
 		this._stripOtherFlags();
 		
-		if (this._args.length == 0) {
-			print("no package given...");
-			return;
-		}	
+		if (typeof(pkg)!='undefined') {
+			//recursive...
+			isGlobal = false;
+			isRoot = false;
+		} else {
+			if (this._args.length == 0) {
+				print("no package given...");
+				return;
+			}				
+			pkg = this._args[0];
+		}
 		
-		var pkg = this._args[0];
 		var instDir = path.resolve(this._getInstalldir(isGlobal), 'tinn_modules');
 		var pkgInstDir = path.resolve(instDir, pkg);
 		if (!OS.isDirAndReadable(pkgInstDir)) {
-			print("Package " + pkg + " not found in " + instDir);
-			return;
+			if (isRoot) {
+				print("\n");
+				this._eprint("Package " + pkg + " not found in " + instDir + ".");
+				return;
+			} else {
+				this._wprint("Package " + pkg + " not found in " + instDir);
+				return;
+			}
 		}
+		
+		//before removing, check package.json if there...
+		var removePkgJsonPath = path.resolve(pkgInstDir, 'package.json');
+		var removePkgJson = null;
+		if (OS.isFileAndReadable(removePkgJsonPath)) {
+			try {
+				removePkgJson = JSON.parse(read(removePkgJsonPath));
+			} catch(e) {
+				this._wprint("failed to read " + pkg + " dependencies, uninstall may be incomplete");
+			}
+		}
+		
+		//before removing check if any other package needs it..
+		var filesInInstDir = OS.listDir(instDir);
+		if (filesInInstDir.length > 0) {
+			for (var i=0;i<filesInInstDir.length; i++) {
+				
+				var deps = this._getPackageDeps(path.resolve(instDir, filesInInstDir[i]));
+				if (deps && typeof(deps[pkg])!='undefined') {
+					this._eprint("Cannot uninstall " + pkg + " because it is needed by " + filesInInstDir[i] +", uninstall " + filesInInstDir[i] + " first");
+					if (isRoot) {
+						print("\n");
+						this._gprint("Uninstall failed.");						
+					}
+					return;
+				}
+			}			
+		}
+		
 		print("Removing " + pkg + " from " + instDir);
 		this._removeTree(pkgInstDir);
+		
+		if (!isGlobal) {
+			var packageJsonPath = path.resolve(path.dirname(instDir), 'package.json');
+			if (OS.isFileAndReadable(packageJsonPath) && removePkgJson){
+				
+				if (isRoot) {
+					try {
+						pkgJson = JSON.parse(read(packageJsonPath));				
+					} catch(e) {
+						this._wprint("failed to read local dependencies, uninstall may be incomplete");
+					}
+				}
+				if (pkgJson) {
+					for (var dep in removePkgJson.dependencies) {
+						if (typeof(pkgJson.dependencies)=='undefined' || typeof(pkgJson.dependencies[dep])=='undefined') {
+							this._vprint("uninstalling dependency " + dep);
+							this.remove(dep, pkgJson);
+						}
+					}					
+				}
+			}
+		}
+		if (isRoot) {
+			if (pkgJson) {
+				if (typeof(pkgJson.dependencies)!='undefined') {
+					delete pkgJson.dependencies[pkg];
+					OS.writeFile(path.resolve(path.dirname(instDir), 'package.json'), JSON.stringify(pkgJson, null, 4));
+					print("updated package.json");
+				}
+			}
+			print("\n");
+			this._gprint("Package uninstalled.");
+		} else {
+			this._gprint("Dependency " + pkg +" uninstalled");			
+		}
 	}
 	
 	this.uninstall = this.remove;
