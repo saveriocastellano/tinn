@@ -652,17 +652,17 @@ Module._initPaths = function() {
     var homeDir = process.env.HOME;
   }
 
-  var paths = [path.resolve(process.cwd(), "tinn_modules")];///*fix*/, '..', '..', 'lib', 'tinn')];
+  var paths = [path.resolve(process.cwd(), "tinn_modules")];
+
   if (homeDir) {
     paths.unshift(path.resolve(homeDir, '.tinn_libraries'));
     paths.unshift(path.resolve(homeDir, '.tinn_modules'));
   }
-
   var tinnPath = process.env['TINN_PATH'];
   if (tinnPath) {
-    paths = tinnPath.concat(paths);
+    paths = [tinnPath].concat(paths);
   } else {
-	paths = process.execPath.concat(paths);
+	paths = [path.resolve(process.execPath, 'tinn_modules')].concat(paths);
   }
 
   modulePaths = paths;
@@ -807,6 +807,7 @@ Module._tinnModulePaths = function(from) {
 
 
 Module._resolveLookupPaths = function(request, parent) {
+  
   var start = request.substring(0, 2);
   if (start !== './' && start !== '..') {
     var paths = modulePaths;
@@ -1444,10 +1445,11 @@ var pkg = new function() {
 			var verifyFailMsg = null;
 			
 			var pkgVersion = this._getPackageVersion(pkgInstDir); 
-			if (!pkgVersion || !this._isTagCompatible(tag, pkgVersion)) {
-				verifyFailMsg = pkg + ' is already installed in ' + pkgInstDir + " but its version could not be verified to be compatible with the requested one."; 
+			if (tag!='') {
+				if (!pkgVersion || !this._isTagCompatible(tag, pkgVersion)) {
+					verifyFailMsg = this._printPkg(pkg) + ' is already installed in ' + pkgInstDir + " but its version could not be verified to be compatible with the requested one."; 
+				}
 			}
-			
 			if (verifyFailMsg) {
 				ctx.failed.push({
 					pkg: obj,
@@ -1461,7 +1463,7 @@ var pkg = new function() {
 				}
 				return;				
 			} else {
-				print(pkg + ' is already installed in ' + pkgInstDir);
+				print(this._printPkg(pkg) + (pkgVersion?' ' + pkgVersion : '') + ' is already installed in ' + pkgInstDir + (tag==''?' and no specific version was requested':''));
 				return;
 			}
 		}		
@@ -1654,7 +1656,7 @@ var pkg = new function() {
 						this._eprint("Cannot uninstall " + this._printPkg(pkg) + " because it is needed by " + this._printPkg(filesInInstDir[i]) +", uninstall " + this._printPkg(filesInInstDir[i]) + " first or use --force (-f)");
 						if (isRoot) {
 							print("\n");
-							this._gprint("Uninstall failed.");						
+							this._eprint("Uninstall failed.");						
 						}
 						return;
 					} else {
