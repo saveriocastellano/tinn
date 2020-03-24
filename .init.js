@@ -652,8 +652,7 @@ Module._initPaths = function() {
     var homeDir = process.env.HOME;
   }
 
-  var paths = [path.resolve(process.execPath, '..', '..', 'lib', 'tinn')];
-
+  var paths = [path.resolve(OS.cwd(), "tinn_modules")];///*fix*/, '..', '..', 'lib', 'tinn')];
   if (homeDir) {
     paths.unshift(path.resolve(homeDir, '.tinn_libraries'));
     paths.unshift(path.resolve(homeDir, '.tinn_modules'));
@@ -661,7 +660,7 @@ Module._initPaths = function() {
 
   var tinnPath = process.env['TINN_PATH'];
   if (tinnPath) {
-    paths = tinnPath.split(path.delimiter).concat(paths);
+    paths = tinnPath./*split(path.delimiter)*/concat(paths);
   }
 
   modulePaths = paths;
@@ -670,7 +669,7 @@ Module._initPaths = function() {
   Module.globalPaths = modulePaths.slice(0);
 };
 
-
+Module._initPaths();
 
 // check if the directory is a package.json dir
 var packageMainCache = {};
@@ -1682,9 +1681,7 @@ var pkg = new function() {
 		print("Found "  +obj.total_count + " projects: "); 
 		for (var i=0; i<obj.items.length;i++) {
 			var proj = obj.items[i];
-			//print(JSON.stringify(obj.items[i],null,4));
 			print(''+proj.name + " " + proj.id + " - " + proj.description);
-			//break;
 		}	
 	}
 	
