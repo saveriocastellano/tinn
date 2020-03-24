@@ -1197,8 +1197,8 @@ int PerIsolateData::RealmIndexOrThrow(
 
 
 void Shell::ProcessCwd(const v8::FunctionCallbackInfo<v8::Value>& args) {	
-	std::string epath = GetExePath();
-	args.GetReturnValue().Set(String::NewFromUtf8(args.GetIsolate(), epath.c_str(), NewStringType::kNormal).ToLocalChecked());
+	//std::string epath = GetExePath();
+	args.GetReturnValue().Set(String::NewFromUtf8(args.GetIsolate(), GetWorkingDirectory().c_str(), NewStringType::kNormal).ToLocalChecked());
 }
 
 
@@ -2265,15 +2265,15 @@ Local<ObjectTemplate> Shell::CreateGlobalTemplate(Isolate* isolate) {
 #else
   process->Set(v8::String::NewFromUtf8(isolate, "platform").ToLocalChecked(), v8::String::NewFromUtf8(isolate,"posix").ToLocalChecked());
 #endif  
-  process->Set(
-      String::NewFromUtf8(isolate, "cwd", NewStringType::kNormal)
-          .ToLocalChecked(),
-      FunctionTemplate::New(isolate, ProcessCwd));
   
-  process->Set(
-      String::NewFromUtf8(isolate, "isFileReadable", NewStringType::kNormal)
-          .ToLocalChecked(),
-      FunctionTemplate::New(isolate, ProcessFileAndReadable));
+  process->Set(String::NewFromUtf8(isolate, "cwd", NewStringType::kNormal).ToLocalChecked(),FunctionTemplate::New(isolate, ProcessCwd));
+  
+  std::string epath = GetExePath();
+  
+  process->Set(String::NewFromUtf8(isolate, "execPath", NewStringType::kNormal).ToLocalChecked(), 
+	String::NewFromUtf8(isolate, epath.c_str(), NewStringType::kNormal).ToLocalChecked());
+  
+  process->Set(String::NewFromUtf8(isolate, "isFileReadable", NewStringType::kNormal).ToLocalChecked(),FunctionTemplate::New(isolate, ProcessFileAndReadable));
 
   Local<ObjectTemplate> process_env_template = ObjectTemplate::New(isolate);
 

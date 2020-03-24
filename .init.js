@@ -652,7 +652,7 @@ Module._initPaths = function() {
     var homeDir = process.env.HOME;
   }
 
-  var paths = [path.resolve(OS.cwd(), "tinn_modules")];///*fix*/, '..', '..', 'lib', 'tinn')];
+  var paths = [path.resolve(process.cwd(), "tinn_modules")];///*fix*/, '..', '..', 'lib', 'tinn')];
   if (homeDir) {
     paths.unshift(path.resolve(homeDir, '.tinn_libraries'));
     paths.unshift(path.resolve(homeDir, '.tinn_modules'));
@@ -660,7 +660,9 @@ Module._initPaths = function() {
 
   var tinnPath = process.env['TINN_PATH'];
   if (tinnPath) {
-    paths = tinnPath./*split(path.delimiter)*/concat(paths);
+    paths = tinnPath.concat(paths);
+  } else {
+	paths = process.execPath.concat(paths);
   }
 
   modulePaths = paths;
@@ -1315,7 +1317,7 @@ var pkg = new function() {
 		} else if (tinnPath && OS.isDirAndReadable(tinnPath)){
 			return tinnPath;
 		} else {
-			return process.cwd();
+			return process.execPath;
 		}
 	}
 	
@@ -1594,12 +1596,13 @@ var pkg = new function() {
 		OS.rmdir(dir);
 	}
 	
-	this.remove = function(pkg, pkgJson){
-		var isGlobal = this._stripFlag('global');
+	this._printPkg = function(pkg){ 
+		return this._cc.color('bold') + pkg + this._cc.color('stopBold');
+	}
+	
+	this.remove = function(pkg, pkgJson, isForce){
 		var isRoot = true;
-		//var isSave = this._stripFlag('save');
-		this._stripOtherFlags();
-		
+				
 		if (typeof(pkg)!='undefined') {
 			//recursive...
 			isGlobal = false;
@@ -1610,6 +1613,9 @@ var pkg = new function() {
 				return;
 			}				
 			pkg = this._args[0];
+			isGlobal = this._stripFlag('global');
+			isForce = this._stripFlag('force');
+			this._stripOtherFlags();
 		}
 		
 		var instDir = path.resolve(this._getInstalldir(isGlobal), 'tinn_modules');
@@ -1643,17 +1649,22 @@ var pkg = new function() {
 				
 				var deps = this._getPackageDeps(path.resolve(instDir, filesInInstDir[i]));
 				if (deps && typeof(deps[pkg])!='undefined') {
-					this._eprint("Cannot uninstall " + pkg + " because it is needed by " + filesInInstDir[i] +", uninstall " + filesInInstDir[i] + " first");
-					if (isRoot) {
-						print("\n");
-						this._gprint("Uninstall failed.");						
-					}
-					return;
+					
+					if (!isForce) {						
+						this._eprint("Cannot uninstall " + this._printPkg(pkg) + " because it is needed by " + this._printPkg(filesInInstDir[i]) +", uninstall " + this._printPkg(filesInInstDir[i]) + " first or use --force (-f)");
+						if (isRoot) {
+							print("\n");
+							this._gprint("Uninstall failed.");						
+						}
+						return;
+					} else {
+						this._wprint("Uninstalling " + this._printPkg(pkg) + " which is needed by " + this._printPkg(filesInInstDir[i]) + " (--force option was given), " + this._printPkg(filesInInstDir[i]) + " might be broken");							
+					}	
 				}
 			}			
 		}
 		
-		print("Removing " + pkg + " from " + instDir);
+		print("Removing " + this._printPkg(pkg) + " from " + instDir);
 		this._removeTree(pkgInstDir);
 		
 		if (!isGlobal) {
@@ -1671,7 +1682,7 @@ var pkg = new function() {
 					for (var dep in removePkgJson.dependencies) {
 						if (typeof(pkgJson.dependencies)=='undefined' || typeof(pkgJson.dependencies[dep])=='undefined') {
 							this._vprint("uninstalling dependency " + dep);
-							this.remove(dep, pkgJson);
+							this.remove(dep, pkgJson, isForce);
 						}
 					}					
 				}
