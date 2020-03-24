@@ -1180,26 +1180,44 @@ var pkg = new function() {
 		var retryCount = 0;
 		var retry = true;
 		do {
-			if (retryCount > 0) this._vprint("retrying...");
+			
+			var obj = null;
 			var res = Http.request(url);
 			if (res.result == 0) {
 				try {
-					return JSON.parse(this._parseHttpResponse(res.response));
+					obj = null;
+					obj = JSON.parse(this._parseHttpResponse(res.response));
 				} catch(e) {
-					print("invalid reply from repository");
+					this._wprint("invalid reply from repository");
 				}
 			} else {
 				//http failed
-				print("error sending request to repository");				
+				this._wprint("error sending request to repository");				
 			}
-			if (retryCount > 4) {
-				OS.sleep(1000);
-			} else if (retryCount > 6) {
-				OS.sleep(2000);
-			} else if (retryCount > 8) {
-				OS.sleep(2500);
-			} else {
-				OS.sleep(200);
+			var doSleep = false;
+			if (obj) {
+				if (typeof(obj.message)=='undefined' || obj.message.indexOf('API rate limit')!=0) {
+					return obj;
+				} else {
+					doSleep = true;
+					this._wprint(obj.message);
+				}
+			}		
+			if (doSleep) {
+				var sl;
+				if (retryCount > 8) {
+					sl = 10000;
+				} else if (retryCount > 6) {
+					sl = 5000;
+				} else if (retryCount > 4) {
+					sl = 2500;
+				} else if (retryCount > 2) {
+					sl = 1000;
+				} else {
+					sl = 200;
+				}
+				this._wprint("retrying in " + sl + 'ms...');
+				OS.sleep(sl);
 			}
 		} while(retry && retryCount++ <10);	
 	}
@@ -1347,7 +1365,7 @@ var pkg = new function() {
 	
 	this._getPackageVersion = function(pkgInstDir) { 
 		var instPkgJson = this._getPackageJson(pkgInstDir);
-		if (instPkgJson) return null;
+		if (!instPkgJson) return null;
 		if (typeof(instPkgJson.version)=='undefined') return null;
 		return instPkgJson.version;	
 	}
@@ -1424,8 +1442,8 @@ var pkg = new function() {
 			var verifyFailMsg = null;
 			
 			var pkgVersion = this._getPackageVersion(pkgInstDir); 
-			if (!pkgVersion || !this._isTagCompatible(tag, instPkgJson.version)) {
-				verifyFailMsg = pkg + ' is already installed in ' + pkgInstDir + " but it's version could not be verified to be compatible with the requested one."; 
+			if (!pkgVersion || !this._isTagCompatible(tag, pkgVersion)) {
+				verifyFailMsg = pkg + ' is already installed in ' + pkgInstDir + " but its version could not be verified to be compatible with the requested one."; 
 			}
 			
 			if (verifyFailMsg) {
