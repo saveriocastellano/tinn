@@ -1193,7 +1193,7 @@ int PerIsolateData::RealmIndexOrThrow(
     return -1;
   }
   return index;
-}
+} 
 
 
 void Shell::ProcessCwd(const v8::FunctionCallbackInfo<v8::Value>& args) {	
@@ -2716,12 +2716,12 @@ void Shell::RunShell(Isolate* isolate) {
   v8::Context::Scope context_scope(context);
   PerIsolateData::RealmScope realm_scope(PerIsolateData::Get(isolate));
   Local<String> name =
-      String::NewFromUtf8(isolate, "(d8)", NewStringType::kNormal)
+      String::NewFromUtf8(isolate, "(tinn)", NewStringType::kNormal)
           .ToLocalChecked();
   printf("V8 version %s\n", V8::GetVersion());
   while (true) {
     HandleScope inner_scope(isolate);
-    printf("d8> ");
+    printf("tinn> ");
     Local<String> input = Shell::ReadFromStdin(isolate);
     if (input.IsEmpty()) break;
     ExecuteString(isolate, input, name, kPrintResult, kReportExceptions,
@@ -3457,7 +3457,7 @@ void Shell::InitJS(Isolate *isolate) {
 #endif	
 	if (isFileReadable(initJSpath)){
 		Local<String> str = ReadFile(isolate, initJSpath);
-		if (!ExecuteString(isolate, str, String::NewFromUtf8(isolate, "d8", NewStringType::kNormal).ToLocalChecked(),
+		if (!ExecuteString(isolate, str, String::NewFromUtf8(isolate, "(tinn)", NewStringType::kNormal).ToLocalChecked(),
 				kNoPrintResult,
 				options.quiet_load ? kNoReportExceptions : kReportExceptions,
 				kNoProcessMessageQueue)) {

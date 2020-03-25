@@ -861,8 +861,8 @@ Module._resolveFilename = function(request, parent) {
 
 Module._load = function(request, parent) {
   var filename; 
-  if (typeof(parent)=='undefined' && request=='<d8>'){ 
-    filename = isWindows ? 'd8.exe' : 'd8';
+  if (typeof(parent)=='undefined' && request=='(tinn)'){ 
+    filename = isWindows ? 'tinn.exe' : 'tinn';
   } else if (typeof(parent)!='undefined') {
 	filename = Module._resolveFilename(request, parent);  
   } else {
@@ -970,7 +970,7 @@ self.require = function(what) {
 })();
 
 if (typeof(process.mainModule)=='undefined') {
-	process.mainModule = '<d8>';
+	process.mainModule = '(tinn)';
 }
 require(process.mainModule);
 delete this.self;
