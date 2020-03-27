@@ -1191,11 +1191,11 @@ var pkg = new function() {
 					obj = null;
 					obj = JSON.parse(this._parseHttpResponse(res.response));
 				} catch(e) {
-					this._wprint("invalid reply from repository");
+					this._wprint("invalid reply from repository, retrying...");
 				}
 			} else {
 				//http failed
-				this._wprint("error sending request to repository");				
+				this._wprint("error sending request to repository, retrying...");				
 			}
 			var doSleep = false;
 			if (obj) {
@@ -1303,12 +1303,34 @@ var pkg = new function() {
 	}
 	
 	
-	this.info = function(what, id) {
-		var obj = this._searchAndGetFirst(what, id);
-		if (!obj) return;
-		print(JSON.stringify(obj, null,4));
+	this.info = function() {
+		print("\n");
+		this._stripOtherFlags();
+		var proj = this._searchAndGetFirst(this._args[0], this._args[1]);
+		if (!proj) return;
+		//print(JSON.stringify(obj, null,4));		
+		print(' '+this._bold(proj.name) + " " + proj.id + ( proj.description ? " - " + proj.description : ''));
+		print(' URL: ' + proj.html_url);	
+		print(' Created on: ' + proj.created_at.split('T')[0].split('-').reverse().join('-'));
+		print(' Updated on: ' + proj.updated_at.split('T')[0].split('-').reverse().join('-'));	
+		var tags = this._gitRequest(proj.tags_url).map(t => t.name).join(" ");
+		print(" Tags: " + (tags.length > 0 ? tags : 'no tag found'));
+		
 		
 	} 
+	
+	this.search = function(){ 
+		print("\n");
+		this._stripOtherFlags();
+		var obj = this._searchAndGetAll(this._args[0]);
+		
+		for (var i=0; i<obj.items.length;i++) {
+			var proj = obj.items[i];
+			print(' '+this._bold(proj.name) + " " + proj.id + ( proj.description ? " - " + proj.description : ''));
+		}	
+		print("\n");
+		this._gprint(this._bold(obj.total_count) + " project"+(obj.total_count==1 ? '':'s')+" found."); 
+	}	
 	
 	this._getInstalldir = function(isGlobal){
 		var tinnPath = process.env['TINN_PATH'];
@@ -1389,6 +1411,7 @@ var pkg = new function() {
 		var isSave = false;
 		var isRoot = false;
 		if (!ctx) {
+			print("\n");
 			ctx = {
 				installed: [],
 				failed: [],
@@ -1488,7 +1511,7 @@ var pkg = new function() {
 			tag = resolvedTag;
 			cmd = cmd.concat(['-b', resolvedTag, '--single-branch']);
 		}
-		cmd.push(obj.git_url);
+		cmd.push(obj.clone_url);
 		cmd.push(pkgInstDir);
 		this._vprint(cmd.join(' '));
 		var res = OS.exec(cmd);
@@ -1597,9 +1620,13 @@ var pkg = new function() {
 		}
 		OS.rmdir(dir);
 	}
+
+	this._bold = function(what){ 
+		return this._cc.color('bold') + what + this._cc.color('stopBold');
+	}
 	
 	this._printPkg = function(pkg){ 
-		return this._cc.color('bold') + pkg + this._cc.color('stopBold');
+		return this._bold(pkg);
 	}
 	
 	this.remove = function(pkg, pkgJson, isForce){
@@ -1610,8 +1637,9 @@ var pkg = new function() {
 			isGlobal = false;
 			isRoot = false;
 		} else {
+			print("\n");
 			if (this._args.length == 0) {
-				print("no package given...");
+				this._eprint("no package given...");
 				return;
 			}				
 			pkg = this._args[0];
@@ -1706,15 +1734,6 @@ var pkg = new function() {
 	}
 	
 	this.uninstall = this.remove;
-	
-	this.search = function(what){ 
-		var obj = this._searchAndGetAll(what);
-		print("Found "  +obj.total_count + " projects: "); 
-		for (var i=0; i<obj.items.length;i++) {
-			var proj = obj.items[i];
-			print(''+proj.name + " " + proj.id + " - " + proj.description);
-		}	
-	}
 	
 	this._setVerbose = function(v){
 		this._verbose = v;
