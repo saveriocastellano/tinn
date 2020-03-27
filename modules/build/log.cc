@@ -36,16 +36,12 @@ using namespace std;
 using namespace v8;
 
 
-typedef struct {
 #ifdef _WIN32
-	map<std::string, LoggerPtr> handles;
-	LoggerPtr mainLogger;
+LoggerPtr mainLogger;
 #else
-	map<std::string, log4cxx::LoggerPtr> handles;
-	log4cxx::LoggerPtr mainLogger;	
+log4cxx::LoggerPtr mainLogger;	
 #endif
 	
-} LogContext;
 
 #ifndef _WIN32 
 using namespace log4cxx; 
@@ -56,24 +52,15 @@ static Local<Value> Throw(Isolate* isolate, const char* message) {
 }
 
 
-LogContext* GetLogContext(Isolate* isolate, Local<v8::Object> object) {
-  LogContext* ctx =
-  static_cast<LogContext*>(object->GetAlignedPointerFromInternalField(0));
-  return ctx;
-}
-
-LoggerPtr getLogger(LogContext *ctx, const v8::FunctionCallbackInfo<v8::Value>& args) {
+LoggerPtr getLogger(const v8::FunctionCallbackInfo<v8::Value>& args) {
     Isolate* isolate = args.GetIsolate();
     HandleScope handle_scope(isolate);
 	
-	LoggerPtr logger = ctx->mainLogger;
+	LoggerPtr logger = mainLogger;
 	if (args.Length() > 1 && args[1]->IsString()) {
 		v8::String::Utf8Value jsName(isolate,Handle<v8::String>::Cast(args[1]));
 		std::string name = std::string(*jsName);
-		if (ctx->handles.find(name)==ctx->handles.end()){
-			ctx->handles[name] = log4cxx::Logger::getLogger(name.c_str());
-		}	
-		logger = ctx->handles[name];
+		logger = log4cxx::Logger::getLogger(name.c_str());
 	}
 	return logger;
 }
@@ -90,15 +77,15 @@ static void LogTrace(const v8::FunctionCallbackInfo<v8::Value>& args)
 		Throw(isolate,"invalid string argument");		
 	}
 	
-	LogContext *ctx = GetLogContext(isolate, args.Holder());	
-	if (ctx->mainLogger == NULL) {
+	
+	if (mainLogger == NULL) {
 		Throw(isolate,"Log module not initialized");
 		return;
 	}
 	
 	
 	v8::String::Utf8Value jsStr(isolate,Handle<v8::String>::Cast(args[0]));
-	TRACE(getLogger(ctx, args), *jsStr)
+	TRACE(getLogger(args), *jsStr)
 }
 
 static void LogDebug(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -114,14 +101,13 @@ static void LogDebug(const v8::FunctionCallbackInfo<v8::Value>& args)
 		Throw(isolate,"invalid string argument");		
 	}
 
-	LogContext *ctx = GetLogContext(isolate, args.Holder());	
-	if (ctx->mainLogger == NULL) {
+	if (mainLogger == NULL) {
 		Throw(isolate,"Log module not initialized");
 		return;
 	}
 	v8::String::Utf8Value jsStr(isolate,Handle<v8::String>::Cast(args[0]));
 	
-	DEBUG(getLogger(ctx, args), *jsStr)
+	DEBUG(getLogger(args), *jsStr)
 }
 static void LogInfo(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
@@ -136,14 +122,14 @@ static void LogInfo(const v8::FunctionCallbackInfo<v8::Value>& args)
 		Throw(isolate,"invalid string argument");		
 	}
 	
-	LogContext *ctx = GetLogContext(isolate, args.Holder());	
-	if (ctx->mainLogger == NULL) {
+	
+	if (mainLogger == NULL) {
 		Throw(isolate,"Log module not initialized");
 		return;
 	}
 	
 	v8::String::Utf8Value jsStr(isolate,Handle<v8::String>::Cast(args[0]));
-	INFO(getLogger(ctx, args), *jsStr)
+	INFO(getLogger(args), *jsStr)
 }
 static void LogWarn(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
@@ -158,14 +144,14 @@ static void LogWarn(const v8::FunctionCallbackInfo<v8::Value>& args)
 		Throw(isolate,"invalid string argument");		
 	}
 	
-	LogContext *ctx = GetLogContext(isolate, args.Holder());	
-	if (ctx->mainLogger == NULL) {
+	
+	if (mainLogger == NULL) {
 		Throw(isolate,"Log module not initialized");
 		return;
 	}
 	
 	v8::String::Utf8Value jsStr(isolate,Handle<v8::String>::Cast(args[0]));
-	WARN(getLogger(ctx, args), *jsStr)
+	WARN(getLogger(args), *jsStr)
 }
 static void LogError(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
@@ -180,14 +166,13 @@ static void LogError(const v8::FunctionCallbackInfo<v8::Value>& args)
 		Throw(isolate,"invalid string argument");		
 	}
 	
-	LogContext *ctx = GetLogContext(isolate, args.Holder());	
-	if (ctx->mainLogger == NULL) {
+	if (mainLogger == NULL) {
 		Throw(isolate,"Log module not initialized");
 		return;
 	}
 	
 	v8::String::Utf8Value jsStr(isolate,Handle<v8::String>::Cast(args[0]));
-	ERROR(getLogger(ctx, args), *jsStr)
+	ERROR(getLogger(args), *jsStr)
 }
 static void LogFatal(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
@@ -202,15 +187,14 @@ static void LogFatal(const v8::FunctionCallbackInfo<v8::Value>& args)
 		Throw(isolate,"invalid string argument");		
 	}
 
-	LogContext *ctx = GetLogContext(isolate, args.Holder());	
-	if (ctx->mainLogger == NULL) {
+	if (mainLogger == NULL) {
 		Throw(isolate,"Log module not initialized");
 		return;
 	}
 	
 	
 	v8::String::Utf8Value jsStr(isolate,Handle<v8::String>::Cast(args[0]));
-	FATAL(getLogger(ctx, args), *jsStr)
+	FATAL(getLogger(args), *jsStr)
 }
 
 
@@ -227,8 +211,8 @@ static void LogInit(const v8::FunctionCallbackInfo<v8::Value>& args)
 		Throw(isolate,"invalid string argument");		
 	}
 	
-	LogContext *ctx = GetLogContext(isolate, args.Holder());	
-	if (ctx->mainLogger != NULL) {
+
+	if (mainLogger != NULL) {
 		Throw(isolate,"Log module already initialized");
 		return;
 	}
@@ -246,7 +230,7 @@ static void LogInit(const v8::FunctionCallbackInfo<v8::Value>& args)
 	}
 	
 	log4cxx::PropertyConfigurator::configure(configFile);
-	ctx->mainLogger = log4cxx::Logger::getRootLogger();	
+	mainLogger = log4cxx::Logger::getRootLogger();	
 }
 
 
@@ -264,15 +248,14 @@ static void LogSetLevel(const v8::FunctionCallbackInfo<v8::Value>& args)
 		Throw(isolate,"invalid level");		
 	}
 	
-	LogContext *ctx = GetLogContext(isolate, args.Holder());	
-	if (ctx->mainLogger == NULL) {
+	if (mainLogger == NULL) {
 		Throw(isolate,"Log module not initialized");
 		return;
 	}
 	
 	
 	int64_t level = (int64_t)args[0]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L);
-	LoggerPtr logger = getLogger(ctx, args);
+	LoggerPtr logger = getLogger(args);
 	
 	logger->setLevel(log4cxx::Level::toLevel(level));
 }
@@ -290,15 +273,14 @@ static void LogIsLevel(const v8::FunctionCallbackInfo<v8::Value>& args)
 		Throw(isolate,"invalid level");		
 	}
 	
-	LogContext *ctx = GetLogContext(isolate, args.Holder());	
-	if (ctx->mainLogger == NULL) {
+	if (mainLogger == NULL) {
 		Throw(isolate,"Log module not initialized");
 		return;
 	}
 	
 	int64_t level = (int64_t)args[0]->Uint32Value(isolate->GetCurrentContext()).FromMaybe(0L);
 	
-	args.GetReturnValue().Set(v8::Boolean::New(isolate,getLogger(ctx, args)->getLevel()->isGreaterOrEqual(log4cxx::Level::toLevel(level))));
+	args.GetReturnValue().Set(v8::Boolean::New(isolate,getLogger(args)->getLevel()->isGreaterOrEqual(log4cxx::Level::toLevel(level))));
 }
 
 
@@ -327,12 +309,7 @@ extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &con
 	log->Set(v8::String::NewFromUtf8(isolate,"INFO")TO_LOCAL_CHECKED, v8::Integer::New(isolate,  log4cxx::Level::INFO_INT));
 		
 		
-	log->SetInternalFieldCount(1);  
-	
-	v8::Local<v8::Object> instance = log->NewInstance(context).ToLocalChecked();	
-	LogContext *ctx = new LogContext();	
-	instance->SetAlignedPointerInInternalField(0, ctx);		
-	
+	v8::Local<v8::Object> instance = log->NewInstance(context).ToLocalChecked();		
 	context->Global()->Set(context,v8::String::NewFromUtf8(isolate,"Log")TO_LOCAL_CHECKED, instance).FromJust();
 	return true;
 	
