@@ -2887,7 +2887,7 @@ bool SourceGroup::Execute(Isolate* isolate) {
   bool success = true;
   int sourceCount = 0;
   bool anyFile = false;
-  bool addToArguments = true;
+  bool addToArguments = false;
   std::vector<const char*> arguments;
   for (int i = begin_offset_; i < end_offset_; ++i) {
     const char* arg = argv_[i];
@@ -2937,7 +2937,6 @@ bool SourceGroup::Execute(Isolate* isolate) {
 	if (!addToArguments) {
 		// Use all other arguments as names of files to load and run.
 		anyFile = true;
-		printf("any file set to true for: %s\n", arg);
 		HandleScope handle_scope(isolate);
 		Local<String> file_name =
 			String::NewFromUtf8(isolate, arg, NewStringType::kNormal)
