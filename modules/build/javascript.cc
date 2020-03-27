@@ -140,13 +140,11 @@ static void Run(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
   if (ctx->scripts.find(string(*file)) != ctx->scripts.end() && st.st_mtime < ctx->scripts[string(*file)].compiledTime) {
 		compiled_script = *reinterpret_cast<v8::Local<v8::Script>*>(const_cast<v8::Persistent<v8::Script, v8::CopyablePersistentTraits<v8::Script>>*>(&(ctx->scripts[string(*file)].script)));	  
-	    //printf("found compiled script in cache\n");
   } else {
 	  if (ctx->scripts.find(string(*file)) != ctx->scripts.end())
 	  {
 		  //outdated found compiled script 
 		  ctx->scripts[string(*file)].script.Reset();
-		  //todo: remove from map
 		  ctx->scripts.erase(string(*file));
 	  }	  
 	  
@@ -197,15 +195,11 @@ void ReportException(Isolate* isolate, v8::TryCatch* try_catch) {
 
 extern "C" bool LIBRARY_API attach(Isolate* isolate, v8::Local<v8::Context> &context) 
 {
-	
 	v8::HandleScope handle_scope(isolate);
     Context::Scope scope(context);
-	
 	Handle<ObjectTemplate> js = ObjectTemplate::New(isolate);
-	
 	js->Set(v8::String::NewFromUtf8(isolate, "load")TO_LOCAL_CHECKED, FunctionTemplate::New(isolate, Run));	
 	js->SetInternalFieldCount(1);  
-	
 	v8::Local<v8::Object> instance = js->NewInstance(context).ToLocalChecked();	
     JsContext * ctx = new JsContext();
 	instance->SetAlignedPointerInInternalField(0, ctx);		
