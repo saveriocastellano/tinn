@@ -712,7 +712,7 @@ function tryPackage(requestPath, exts) {
 Module._realpathCache = {};
 
 function tryFile(requestPath) {
-  if( path.isFileReadable(requestPath)) {
+  if( os.isFileReadable(requestPath)) {
 	return requestPath;
   }else {
 	return false;
@@ -960,8 +960,6 @@ Module._extensions['.js'] = function(module, filename) {
   module._compile(stripBOM(content), filename);
 };
 
-path.isFileReadable = process.isFileReadable;
-delete process.isFileReadable;
 self.path = path;
 self.require = function(what) {
 	return Module._load(what, typeof(process.mainModule)=='object' ? process.mainModule : undefined);
@@ -994,16 +992,16 @@ if (process.platform === 'win32') {
 		var nginxConf = nginxDir + '\\nginx.conf'; 
 		var nginxConfTpl = nginxDir + '\\nginx.conf.tpl'; 
 		
-		if (OS.isFileAndReadable(nginx)) {
-			OS.exec([fixPath(process.env['SystemRoot']+'\\System32\\taskkill.exe'), '/F', '/IM', 'nginx.exe', '2>', 'nul']);
+		if (os.isFileAndReadable(nginx)) {
+			os.exec([fixPath(process.env['SystemRoot']+'\\System32\\taskkill.exe'), '/F', '/IM', 'nginx.exe', '2>', 'nul']);
 			var listenAddr = addr.indexOf(":")==0? '127.0.0.1'+addr : addr;
-			if (OS.isFileAndReadable(nginxConfTpl)) {
-				var tpl = OS.readFile(nginxConfTpl);
+			if (os.isFileAndReadable(nginxConfTpl)) {
+				var tpl = os.readFile(nginxConfTpl);
 					tpl = tpl.replace('%ADDR%',listenAddr);
 				tpl = tpl.replace('%PORT%',nginxPort);
-				OS.writeFile(nginxConf, tpl);
+				os.writeFile(nginxConf, tpl);
 			}
-			new Worker('OS.exec(["'+fixPath(nginx)+'","-c","nginx.conf","-p","'+fixPath(nginxDir)+'"]);', {type:'string'});
+			new Worker('os.exec(["'+fixPath(nginx)+'","-c","nginx.conf","-p","'+fixPath(nginxDir)+'"]);', {type:'string'});
 			print("nginx listening on port " + nginxPort);
 		}
 		Http._openSocket(addr);
@@ -1177,6 +1175,20 @@ var pkg = new function() {
 		return body;
 	}
 	
+	
+	
+	this._httpRequest = function(url) {
+		if (typeof(Http)!='undefined') {
+			var res = Http.request(url);
+			if (res.result != 0) return null;
+			return this._parseHttpResponse(res.response);
+		} else {
+		   this._eprint("To use this command first you need to build the " + this._bold('Http') + " module.");
+		   print('\n');
+		   throw new Error('Http module not loaded');
+		}
+ 	}
+	
 	this._gitRequest = function(url) {
 
 		this._vprint("git request " + url);
@@ -1185,11 +1197,11 @@ var pkg = new function() {
 		do {
 			
 			var obj = null;
-			var res = Http.request(url);
-			if (res.result == 0) {
+			var res = this._httpRequest(url);
+			if (res != null) {
 				try {
 					obj = null;
-					obj = JSON.parse(this._parseHttpResponse(res.response));
+					obj = JSON.parse(res);
 				} catch(e) {
 					this._wprint("invalid reply from repository, retrying...");
 				}
@@ -1220,7 +1232,7 @@ var pkg = new function() {
 					sl = 200;
 				}
 				this._wprint("retrying in " + sl + 'ms...');
-				OS.sleep(sl);
+				os.sleep(sl);
 			}
 		} while(retry && retryCount++ <10);	
 	}
@@ -1336,8 +1348,8 @@ var pkg = new function() {
 		var tinnPath = process.env['TINN_PATH'];
 		
 		if (!isGlobal) {
-			return OS.cwd();
-		} else if (tinnPath && OS.isDirAndReadable(tinnPath)){
+			return os.cwd();
+		} else if (tinnPath && os.isDirAndReadable(tinnPath)){
 			return tinnPath;
 		} else {
 			return process.execPath;
@@ -1366,12 +1378,12 @@ var pkg = new function() {
 		var file;
 		try {
 			if (process.platform=='win32') {
-				file = OS.exec(['where','git', '2>', 'nul']).output.split('\n')[0];
+				file = os.exec(['where','git', '2>', 'nul']).output.split('\n')[0];
 			} else {
-				file = OS.exec(['which','git']).output.split('\n')[0];
+				file = os.exec(['which','git']).output.split('\n')[0];
 			}
 		} catch(e) {}
-		if (!OS.isFileAndReadable(file)) {
+		if (!os.isFileAndReadable(file)) {
 			print("'git' not found. Make sure 'git' is installed and in PATH");
 			return null; 
 		}
@@ -1415,7 +1427,7 @@ var pkg = new function() {
 			ctx = {
 				installed: [],
 				failed: [],
-				cwd: OS.cwd()
+				cwd: os.cwd()
 		    };		
 			isRoot = true;
 		}
@@ -1458,13 +1470,13 @@ var pkg = new function() {
 			pkg = searchArgs[0];
 		}		
 		
-		if (!OS.isDirAndReadable(instDir)){					
-			OS.mkdir(instDir);
+		if (!os.isDirAndReadable(instDir)){					
+			os.mkdir(instDir);
 			print("created install directory: " + instDir);
 		}
 		
 		var pkgInstDir = path.resolve(instDir, pkg);
-		if (OS.isDirAndReadable(pkgInstDir)) {
+		if (os.isDirAndReadable(pkgInstDir)) {
 			var verifyFailMsg = null;
 			
 			var pkgVersion = this._getPackageVersion(pkgInstDir); 
@@ -1514,14 +1526,14 @@ var pkg = new function() {
 		cmd.push(obj.clone_url);
 		cmd.push(pkgInstDir);
 		this._vprint(cmd.join(' '));
-		var res = OS.exec(cmd);
+		var res = os.exec(cmd);
 		
-		if (OS.isDirAndReadable(pkgInstDir)) {
+		if (os.isDirAndReadable(pkgInstDir)) {
 			//deps?
 			var pkgJsonPath = path.resolve(pkgInstDir, 'package.json');
 			
 			//REMOVE ME
-			if (!OS.isFileAndReadable(pkgJsonPath) && obj.name == 'tinn_web') {				
+			if (!os.isFileAndReadable(pkgJsonPath) && obj.name == 'tinn_web') {				
 				var json = JSON.stringify({
 					"dependencies": {
 						"detect-newline": "^2.1.0",
@@ -1529,12 +1541,12 @@ var pkg = new function() {
 						"bluebird": "^3.5.3",
 					}				
 				},null,4);
-				OS.writeFile(pkgJsonPath, json);
+				os.writeFile(pkgJsonPath, json);
 			}
 			//END
 			
-			if (OS.isFileAndReadable(pkgJsonPath)) {
-				var pkgJson = JSON.parse(OS.readFile(pkgJsonPath));
+			if (os.isFileAndReadable(pkgJsonPath)) {
+				var pkgJson = JSON.parse(os.readFile(pkgJsonPath));
 				if (typeof(pkgJson.dependencies)!='undefined') {
 					this._vprint("handle " + obj.name + " deps..");
 					for (var dep in pkgJson.dependencies) {
@@ -1587,7 +1599,7 @@ var pkg = new function() {
 		if (isRoot && ctx.installed.length > 0 && isSave) {
 			var packageJsonPath = path.resolve(ctx.cwd, 'package.json');
 			//print("updating package json " + packageJson);
-			if (!OS.isFileAndReadable(packageJsonPath)) {
+			if (!os.isFileAndReadable(packageJsonPath)) {
 				this._wprint('package.json not found: ' + packageJsonPath);
 			} else {
 				try {
@@ -1596,7 +1608,7 @@ var pkg = new function() {
 					var pkgVersion = this._getPackageVersion(pkgInstDir); 
 					if (!pkgVersion) pkgVersion = tag;
 					packageJson.dependencies[pkg] = pkgVersion;
-					OS.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 4));
+					os.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 4));
 					print("updated package.json");
  
 				} catch(e) {
@@ -1608,17 +1620,17 @@ var pkg = new function() {
 	
 	
 	this._removeTree = function(dir){ 
-		var files = OS.listDir(dir);
+		var files = os.listDir(dir);
 		for (var i=0; i<files.length; i++){
 			//print("file: " + files[i]);
 			var file = path.resolve(dir, files[i]);
-			if (OS.isFileAndReadable(file)) {
-				OS.unlink(file);
+			if (os.isFileAndReadable(file)) {
+				os.unlink(file);
 			} else {
 				this._removeTree(file);
 			}
 		}
-		OS.rmdir(dir);
+		os.rmdir(dir);
 	}
 
 	this._bold = function(what){ 
@@ -1650,7 +1662,7 @@ var pkg = new function() {
 		
 		var instDir = path.resolve(this._getInstalldir(isGlobal), 'tinn_modules');
 		var pkgInstDir = path.resolve(instDir, pkg);
-		if (!OS.isDirAndReadable(pkgInstDir)) {
+		if (!os.isDirAndReadable(pkgInstDir)) {
 			if (isRoot) {
 				print("\n");
 				this._eprint("Package " + pkg + " not found in " + instDir + ".");
@@ -1664,7 +1676,7 @@ var pkg = new function() {
 		//before removing, check package.json if there...
 		var removePkgJsonPath = path.resolve(pkgInstDir, 'package.json');
 		var removePkgJson = null;
-		if (OS.isFileAndReadable(removePkgJsonPath)) {
+		if (os.isFileAndReadable(removePkgJsonPath)) {
 			try {
 				removePkgJson = JSON.parse(read(removePkgJsonPath));
 			} catch(e) {
@@ -1673,7 +1685,7 @@ var pkg = new function() {
 		}
 		
 		//before removing check if any other package needs it..
-		var filesInInstDir = OS.listDir(instDir);
+		var filesInInstDir = os.listDir(instDir);
 		if (filesInInstDir.length > 0) {
 			for (var i=0;i<filesInInstDir.length; i++) {
 				
@@ -1699,7 +1711,7 @@ var pkg = new function() {
 		
 		if (!isGlobal) {
 			var packageJsonPath = path.resolve(path.dirname(instDir), 'package.json');
-			if (OS.isFileAndReadable(packageJsonPath) && removePkgJson){
+			if (os.isFileAndReadable(packageJsonPath) && removePkgJson){
 				
 				if (isRoot) {
 					try {
@@ -1722,7 +1734,7 @@ var pkg = new function() {
 			if (pkgJson) {
 				if (typeof(pkgJson.dependencies)!='undefined') {
 					delete pkgJson.dependencies[pkg];
-					OS.writeFile(path.resolve(path.dirname(instDir), 'package.json'), JSON.stringify(pkgJson, null, 4));
+					os.writeFile(path.resolve(path.dirname(instDir), 'package.json'), JSON.stringify(pkgJson, null, 4));
 					print("updated package.json");
 				}
 			}
@@ -1742,6 +1754,94 @@ var pkg = new function() {
 	this._setArgs = function(args){
 		this._args = args;
 	}
+	
+	this._buildModule = function(modDir) {		
+		var cmd = ['make','-C', modDir];
+		print(cmd.join(' '));
+		var res = os.exec(cmd);
+		print(res.output);
+		var mod = path.basename(modDir);
+		var modlib = path.resolve(process.execPath, 'modules', 'mod_'+mod+'.'+(process.platform=='win32'?'dll':'so'));
+		if (!os.isFileAndReadable(modlib)) {
+			this._eprint("building of " + mod + " failed");
+			return null;
+		}
+		return mod;
+	}
+
+	this._cleanModule = function(modDir) {		
+		var cmd = ['make','-C', modDir, 'clean'];
+		print(cmd.join(' '));
+		var res = os.exec(cmd);
+		print(res.output);
+	}
+	
+	this._getBuildDir = function() {
+		var dir = path.resolve(process.execPath);
+		return path.resolve(dir, 'build');
+	}
+	
+	this.clean = function() {
+		this._stripOtherFlags()//
+		if (this._args.length == 0) {
+			var modsDir = path.resolve(this._getBuildDir(), 'modules'); 
+			var list = os.listDir(modsDir);
+			for (var i=0; i<list.length; i++) {
+				var modDir = path.resolve(modsDir, list[i]);
+				if (!os.isDirAndReadable(modDir)) continue;
+				this._cleanModule(modDir);
+			}
+		} else {
+			var modDir = path.resolve(this._getBuildDir(), 'modules', this._args[0]); 
+			if (!os.isDirAndReadable(modDir)) {
+				print("\n");
+				this._eprint("module not found: " + this._bold(this._args[0]) +".");
+				return;
+			}			
+			this._cleanModule(modDir);
+		}	
+	}
+	
+	this.build = function() {
+		this._stripOtherFlags()//
+		var modsBuilt = [];
+		var modsFailed = [];
+		if (this._args.length == 0) {
+			var modsDir = path.resolve(this._getBuildDir(), 'modules'); 
+			var list = os.listDir(modsDir);
+			for (var i=0; i<list.length; i++) {
+				var modDir = path.resolve(modsDir, list[i]);
+				if (!os.isDirAndReadable(modDir)) continue;
+				var mod = this._buildModule(modDir);
+				if (mod) {
+					modsBuilt.push(mod);
+				} else {
+					modsFailed.push(mod);
+				}
+			}
+		} else {
+			var modDir = path.resolve(this._getBuildDir(), 'modules', this._args[0]); 
+			if (!os.isDirAndReadable(modDir)) {
+				print("\n");
+				this._eprint("module not found: " + this._bold(this._args[0]) +".");
+				return;
+			}			
+			var mod = this._buildModule(modDir);
+			if (mod) {
+				modsBuilt.push(mod);
+			} else {
+				modsFailed.push(mod);
+			}
+		}
+		
+		if (modsFailed.length > 0) {
+			this._eprint(modsFailed.length + " module" +(modsFailed.length==1?'':'s') + " failed to build" + (modsFailed.length >0 ? ': ' + this._bold(modsFailed.join(" ")) :'')+'.');			
+		}
+		if (modsBuilt.length > 0) {
+			this._gprint(modsBuilt.length + " module" +(modsBuilt.length==1?'':'s') + " built" + (modsBuilt.length >0 ? ': ' + this._bold(modsBuilt.join(" ")) :'')+'.');
+		} 
+	}
+		
 	
 }
 
