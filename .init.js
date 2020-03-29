@@ -1748,7 +1748,7 @@ var pkg = new function() {
 
 		var cmd;
 		if (isWin32) {
-			cmd = [path.resolve(this._getBuildDir(), 'scripts', 'win32', 'build.bat'), mod];
+			cmd = [path.resolve(this._getBuildDir(), 'scripts', 'win32', 'build.cmd'), mod];
 		} else {
 			cmd = ['make','-C', modDir];				
 		}
@@ -1769,7 +1769,7 @@ var pkg = new function() {
 		var mod = path.basename(modDir);
 		var cmd;
 		if (isWin32) {
-			cmd = [path.resolve(this._getBuildDir(), 'scripts', 'win32', 'build.bat'), mod, 'clean'];
+			cmd = [path.resolve(this._getBuildDir(), 'scripts', 'win32', 'build.cmd'), mod, 'clean'];
 		} else {
 			cmd = ['make','-C', modDir, 'clean'];				
 		}	
