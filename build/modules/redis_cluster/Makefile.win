@@ -1,0 +1,16 @@
+include .\..\Makefile.win	
+
+HIREDIS_VERSION=0.11.0
+CPP_HIREDIS_CLUSTER_HOME=cpp-hiredis-cluster
+
+all:
+	$(CC) $(CFLAGS) -Iwin32\hiredis_$(HIREDIS_VERSION)\include -I$(CPP_HIREDIS_CLUSTER_HOME)\include \
+		redis_cluster.cc -o ..\..\..\modules\mod_redis_cluster.dll \
+		$(LDFLAGS) -Lwin32\hiredis_$(HIREDIS_VERSION)\lib\$(ARCH) -lhiredis -lWin32_Interop
+		
+	del /Q ..\..\..\modules\mod_redis_cluster.lib
+	del /Q ..\..\..\modules\mod_redis_cluster.exp
+	
+clean:
+	del /Q ..\..\..\modules\mod_redis_cluster.*
+

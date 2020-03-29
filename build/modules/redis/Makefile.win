@@ -1,0 +1,14 @@
+include .\..\Makefile.win	
+
+HIREDIS_VERSION=0.11.0
+
+all:
+	$(CC) $(CFLAGS) -Iwin32\hiredis_$(HIREDIS_VERSION)\include redis.cc -o ..\..\..\modules\mod_redis.dll \
+		$(LDFLAGS) -Lwin32\hiredis_$(HIREDIS_VERSION)\lib\$(ARCH) -lhiredis -lWin32_Interop
+		
+	del /Q ..\..\..\modules\mod_redis.lib
+	del /Q ..\..\..\modules\mod_redis.exp
+	
+clean:
+	del /Q ..\..\..\modules\mod_redis.*
+
