@@ -8,9 +8,9 @@ all:
 		redis_cluster.cc -o ..\..\..\modules\mod_redis_cluster.dll \
 		$(LDFLAGS) -Lwin32\hiredis_$(HIREDIS_VERSION)\lib\$(ARCH) -lhiredis -lWin32_Interop
 		
-	del /Q ..\..\..\modules\mod_redis_cluster.lib
-	del /Q ..\..\..\modules\mod_redis_cluster.exp
+	@del /Q ..\..\..\modules\mod_redis_cluster.lib 2> nul
+	@del /Q ..\..\..\modules\mod_redis_cluster.exp 2> nul
 	
 clean:
-	del /Q ..\..\..\modules\mod_redis_cluster.*
+	@del /Q ..\..\..\modules\mod_redis_cluster.* 2> nul
 

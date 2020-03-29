@@ -6,9 +6,9 @@ all:
 	$(CC) $(CFLAGS) -Iwin32\hiredis_$(HIREDIS_VERSION)\include redis.cc -o ..\..\..\modules\mod_redis.dll \
 		$(LDFLAGS) -Lwin32\hiredis_$(HIREDIS_VERSION)\lib\$(ARCH) -lhiredis -lWin32_Interop
 		
-	del /Q ..\..\..\modules\mod_redis.lib
-	del /Q ..\..\..\modules\mod_redis.exp
+	@del /Q ..\..\..\modules\mod_redis.lib 2> nul
+	@del /Q ..\..\..\modules\mod_redis.exp 2> nul
 	
 clean:
-	del /Q ..\..\..\modules\mod_redis.*
+	@del /Q ..\..\..\modules\mod_redis.* 2> nul
 

@@ -4,14 +4,20 @@ CURL_VERSION=7.65.2
 
 include .\..\Makefile.win
 
-all:
+all: 
 	$(CC) $(CFLAGS) -Iwin32\curl_$(CURL_VERSION)\include -Iwin32\fcgi_$(FCGI_VERSION)\include .\..\..\src\sds.c http.cc \
-		-llibfcgi -o ..\..\..\modules\mod_http.dll -Lwin32\fcgi_$(FCGI_VERSION)\lib\$(ARCH) \
-		-Lwin32\curl_$(CURL_VERSION)\lib\$(ARCH) -llibcurl $(LDFLAGS)
+		-llibfcgi -Lwin32\curl_$(CURL_VERSION)\lib\$(ARCH) -llibcurl $(LDFLAGS) -Lwin32\fcgi_$(FCGI_VERSION)\lib\$(ARCH) \
+		-o ..\..\..\modules\mod_http.dll 
 		
-	del /Q ..\..\..\modules\mod_http.lib
-	del /Q ..\..\..\modules\mod_http.exp
+	@del /Q ..\..\..\modules\mod_http.lib 2> nul
+	@del /Q ..\..\..\modules\mod_http.exp 2> nul
+	@copy win32\curl_$(CURL_VERSION)\lib\$(ARCH)\libcurl.dll ..\..\..
+	@copy win32\fcgi_$(FCGI_VERSION)\lib\$(ARCH)\libfcgi.dll ..\..\..
+	@copy win32\zlib\$(ARCH)\zlib1.dll ..\..\..
 	
 clean:
-	del /Q ..\..\..\modules\mod_http.*
+	@del /F /A /Q ..\..\..\modules\mod_http.* 2> nul
+	@del /F ..\..\..\libcurl.dll 2> nul
+	@del /F ..\..\..\libfcgi.dll 2> nul
+	@del /F ..\..\..\zlib1.dll 2> nul
 

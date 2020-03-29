@@ -6,9 +6,10 @@ all:
 	$(CC) $(CFLAGS) -Iwin32\log4cxx_$(LOG4CXX_VERSION)\include log.cc -o ..\..\..\modules\mod_log.dll \
 		$(LDFLAGS) -Lwin32\log4cxx_$(LOG4CXX_VERSION)\lib\$(ARCH) -llog4cxx
 		
-	del /Q ..\..\..\modules\mod_log.lib
-	del /Q ..\..\..\modules\mod_log.exp
+	@del /Q ..\..\..\modules\mod_log.lib  2> nul
+	@del /Q ..\..\..\modules\mod_log.exp  2> nul
+	@copy win32\log4cxx_$(LOG4CXX_VERSION)\lib\$(ARCH)\log4cxx.dll ..\..\..
 	
 clean:
-	del /Q ..\..\..\modules\mod_log.*
-
+	@del /Q ..\..\..\modules\mod_log.*  2> nul
+	@del /F ..\..\..\log4cxx.dll 2> nul

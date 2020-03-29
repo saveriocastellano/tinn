@@ -2,9 +2,9 @@ include .\..\Makefile.win
 
 all:
 	$(CC) $(CFLAGS) javascript.cc -o ..\..\..\modules/mod_javascript.dll $(LDFLAGS)
-	del /Q ..\..\..\modules\mod_javascript.lib
-	del /Q ..\..\..\modules\mod_javascript.exp
+	@del /Q ..\..\..\modules\mod_javascript.lib 2> nul
+	@del /Q ..\..\..\modules\mod_javascript.exp 2> nul
 	
 clean:
-	del /Q ..\..\..\modules\mod_javascript.*
+	@del /Q ..\..\..\modules\mod_javascript.* 2> nul
 

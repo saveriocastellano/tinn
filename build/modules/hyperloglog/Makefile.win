@@ -2,9 +2,9 @@ include .\..\Makefile.win
 
 all:
 	$(CC) $(CFLAGS) -Icpp-HyperLogLog\include hyperloglog.cc -o ..\..\..\modules/mod_hyperloglog.dll $(LDFLAGS)
-	del /Q ..\..\..\modules\mod_hyperloglog.lib
-	del /Q ..\..\..\modules\mod_hyperloglog.exp
+	@del /Q ..\..\..\modules\mod_hyperloglog.lib 2> nul
+	@del /Q ..\..\..\modules\mod_hyperloglog.exp 2> nul
 	
 clean:
-	del /Q ..\..\..\modules\mod_hyperloglog.*
+	@del /Q ..\..\..\modules\mod_hyperloglog.* 2> nul
 

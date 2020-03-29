@@ -8,9 +8,9 @@ all:
 		ssdb.cc -o ..\..\..\modules\mod_ssdb.dll \
 		$(LDFLAGS) -Lwin32\lib\$(ARCH) -lWin32_Interop -lws2_32
 		
-	del /Q ..\..\..\modules\mod_ssdb.lib
-	del /Q ..\..\..\modules\mod_ssdb.exp
+	@del /Q ..\..\..\modules\mod_ssdb.lib  2> nul
+	@del /Q ..\..\..\modules\mod_ssdb.exp  2> nul
 	
 clean:
-	del /Q ..\..\..\modules\mod_ssdb.*
+	@del /Q ..\..\..\modules\mod_ssdb.*  2> nul
 

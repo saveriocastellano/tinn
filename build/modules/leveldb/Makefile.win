@@ -6,9 +6,9 @@ all:
 	$(CC) $(CFLAGS) -Iwin32\leveldb_$(LEVELDB_VERSION)\include leveldb.cc -o ..\..\..\modules\mod_leveldb.dll \
 		$(LDFLAGS) -Lwin32\leveldb_$(LEVELDB_VERSION)\lib\$(ARCH) -lleveldb
 		
-	del /Q ..\..\..\modules\mod_leveldb.lib
-	del /Q ..\..\..\modules\mod_leveldb.exp
+	@del /Q ..\..\..\modules\mod_leveldb.lib 2> nul
+	@del /Q ..\..\..\modules\mod_leveldb.exp 2> nul
 	
 clean:
-	del /Q ..\..\..\modules\mod_leveldb.*
+	@del /Q ..\..\..\modules\mod_leveldb.* 2> nul
 
