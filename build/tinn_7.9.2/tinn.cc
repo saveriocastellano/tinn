@@ -1216,6 +1216,51 @@ static void OSMkDir(const v8::FunctionCallbackInfo<v8::Value>&  args)
 #endif	
 }
 
+#ifdef _WIN32
+#include <processthreadsapi.h>
+#endif 
+static void OSSystem(const v8::FunctionCallbackInfo<v8::Value>&  args) {
+    Isolate* isolate = args.GetIsolate();
+    HandleScope handle_scope(isolate);
+
+	if (args.Length() != 1 || !args[0]->IsString())
+	{
+	    Throw(isolate, "Unexpected arguments");
+		return;
+	}
+	v8::String::Utf8Value jsStr(isolate, Local<v8::String>::Cast(args[0]));
+#ifndef _WIN32
+	system(*jsStr);
+#else	
+    STARTUPINFOA si;
+    PROCESS_INFORMATION pi;
+
+    ZeroMemory( &si, sizeof(si) );
+    si.cb = sizeof(si);
+    ZeroMemory( &pi, sizeof(pi) );
+	if( !CreateProcessA( NULL,   // No module name (use command line)
+        *jsStr,        // Command line
+        NULL,           // Process handle not inheritable
+        NULL,           // Thread handle not inheritable
+        FALSE,          // Set handle inheritance to FALSE
+        0,              // No creation flags
+        NULL,           // Use parent's environment block
+        NULL,           // Use parent's starting directory 
+        &si,            // Pointer to STARTUPINFO structure
+        &pi )           // Pointer to PROCESS_INFORMATION structure
+    ) {
+		
+		return;
+	}
+    // Wait until child process exits.
+    WaitForSingleObject( pi.hProcess, INFINITE );
+
+    // Close process and thread handles. 
+	CloseHandle( pi.hProcess );
+    CloseHandle( pi.hThread );	
+	
+#endif	
+}
 
 
 static void OSMkPath(const v8::FunctionCallbackInfo<v8::Value>&  args)
@@ -2892,6 +2937,7 @@ void Shell::AddTINNOS(Isolate* isolate, v8::Local<v8::Context> &context) {
 	
 	Local<ObjectTemplate> os = ObjectTemplate::New(isolate);
 
+	os->Set(v8::String::NewFromUtf8(isolate, "system").ToLocalChecked(), FunctionTemplate::New(isolate, OSSystem));
 	os->Set(v8::String::NewFromUtf8(isolate, "filesize").ToLocalChecked(), FunctionTemplate::New(isolate, OSFileSize));
 	os->Set(v8::String::NewFromUtf8(isolate, "mkpath").ToLocalChecked(), FunctionTemplate::New(isolate, OSMkPath));
 	os->Set(v8::String::NewFromUtf8(isolate, "mkdir").ToLocalChecked(), FunctionTemplate::New(isolate, OSMkDir));
@@ -5030,7 +5076,19 @@ int Shell::Main(int argc, char* argv[]) {
 }  // namespace v8
 
 #ifndef GOOGLE3
-int main(int argc, char* argv[]) {  loadModules();	return v8::Shell::Main(argc, argv); }
+int main(int argc, char* argv[]) {  
+	bool dontLoadModules = false;
+	for (int i = 0; i < argc; i++) {  
+		if (strcmp(argv[i], "build") == 0 || strcmp(argv[i], "clean") == 0) {
+			dontLoadModules = true;
+			break;
+		}
+	}
+
+	if (!dontLoadModules) {
+		loadModules();
+	}
+	return v8::Shell::Main(argc, argv); }
 #endif
 
 #undef CHECK
