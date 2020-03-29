@@ -1,6 +1,6 @@
 #!/bin/sh
-
-BUILD_DIR=$(dirname "$0")
+PWD=`pwd`
+BUILD_DIR=`dirname ${PWD}/${0}`
 
 if [ ! -f "$BUILD_DIR/V8-VERSION" ]; then
     echo "V8-VERSION is missing...? Please reinstall" 
@@ -108,7 +108,10 @@ cp ${D8} $BUILD_DIR/../tinn
 cp $OUT_DIR/natives_blob.bin $BUILD_DIR/..
 cp $OUT_DIR/snapshot_blob.bin $BUILD_DIR/..
 
-
+echo '#!/bin/sh' > /usr/bin/tinn
+echo -n $BUILD_DIR/../tinn >> /usr/bin/tinn
+echo ' $@' >> /usr/bin/tinn
+chmod 777 /usr/bin/tinn
 
 
 
