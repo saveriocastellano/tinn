@@ -1,4 +1,4 @@
-# TINN - A Javascript application toolkit built on top of google v8/d8
+# TINN - A Javascript application toolkit built on top of google v8
 TINN stands for TINN-Is-Not-NodeJS. 
 
 TINN is a Javascript application toolkit based on the google V8 javascript engine.  
