@@ -3656,7 +3656,7 @@ void Shell::RunShell(Isolate* isolate) {
   Local<String> name =
       String::NewFromUtf8(isolate, "(tinn)", NewStringType::kNormal)
           .ToLocalChecked();
-  printf("V8 version %s\n", V8::GetVersion());
+  printf("TINN version 0.0.1 (V8 version %s)\n", V8::GetVersion());
   while (true) {
     HandleScope inner_scope(isolate);
     printf("tinn> ");
