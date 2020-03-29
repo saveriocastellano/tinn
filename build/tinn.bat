@@ -130,8 +130,8 @@ if not exist %D8_CC%.orig (
 	echo. backed up original d8 sources
 )
 
-copy %BUILD_DIR%\tinn_7.9.2\tinn.cc %D8_CC% 1> nul
-copy %BUILD_DIR%\tinn_7.9.2\tinn.h %D8_H% 1> nul
+copy %BUILD_DIR%\src\tinn_%V8_VER%\tinn.cc %D8_CC% 1> nul
+copy %BUILD_DIR%\src\tinn_%V8_VER%\tinn.h %D8_H% 1> nul
 copy %BUILD_DIR%\includes\win32\linux.h %V8_DIR%\src\d8\linux.h 1> nul
 copy %BUILD_DIR%\includes\win32\dirent.h %V8_DIR%\src\d8\dirent.h 1> nul
 

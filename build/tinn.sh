@@ -86,8 +86,8 @@ if [ ! -f "${D8_NINJA}.orig" ]; then
 fi
 
 sed -i 's/-lpthread\s-lrt/-lpthread -rdynamic -lrt/' $OUT_DIR/obj/d8.ninja
-cp $BUILD_DIR/tinn_$V8_VER/tinn.cc $D8_CC
-cp $BUILD_DIR/tinn_$V8_VER/tinn.h $D8_H
+cp $BUILD_DIR/src/tinn_$V8_VER/tinn.cc $D8_CC
+cp $BUILD_DIR/src/tinn_$V8_VER/tinn.h $D8_H
 
 if [ ! -f "${D8}.orig" ]; then
 	cp ${D8} ${D8}.orig
