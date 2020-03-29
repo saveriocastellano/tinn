@@ -120,7 +120,7 @@ $ tools/dev/gm.py x64.release
 ```
 Now from the TINN directory run the `tinn.sh` script in `build/` and pass it the directory where v8 is from the previous step:
 ```sh
-$ ./build/tinn_build.sh /opt/v8
+$ ./build/tinn.sh /opt/v8
 ```
 In the above command you need to change `/opt/v8/` to wherever you put v8 in your sytem.  
 If the script was successful then you will have the following files in the TINN directory:
