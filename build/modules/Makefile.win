@@ -1,0 +1,5 @@
+NO_WARNS=-Wno-unused-parameter -Wno-deprecated -Wno-writable-strings -Wno-unused-variable -Wno-backslash-newline-escape -Wno-unused-result -Wno-deprecated-declarations -Wno-macro-redefined -Wno-sign-compare
+CFLAGS=$(ARCH_FLAG) $(NO_WARNS) -I..\..\includes -I$(V8_HOME) -I..\..\includes\win32
+LDFLAGS=-shared -L..\..\libs\win32\v8_$(V8_VERSION)\$(ARCH) -lv8.dll -lv8_libplatform.dll
+CC="C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\vc\Tools\Llvm\bin\clang++.exe"
+

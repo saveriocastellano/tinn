@@ -1,0 +1,10 @@
+include .\..\Makefile.win
+
+all:
+	$(CC) $(CFLAGS) javascript.cc -o ..\..\..\modules/mod_javascript.dll $(LDFLAGS)
+	del /Q ..\..\..\modules\mod_javascript.lib
+	del /Q ..\..\..\modules\mod_javascript.exp
+	
+clean:
+	del /Q ..\..\..\modules\mod_javascript.*
+
