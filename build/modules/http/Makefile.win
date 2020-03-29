@@ -1,0 +1,17 @@
+FCGI_VERSION=2.4.1
+CURL_VERSION=7.65.2
+
+
+include .\..\Makefile.win
+
+all:
+	$(CC) $(CFLAGS) -Iwin32\curl_$(CURL_VERSION)\include -Iwin32\fcgi_$(FCGI_VERSION)\include .\..\..\src\sds.c http.cc \
+		-llibfcgi -o ..\..\..\modules\mod_http.dll -Lwin32\fcgi_$(FCGI_VERSION)\lib\$(ARCH) \
+		-Lwin32\curl_$(CURL_VERSION)\lib\$(ARCH) -llibcurl $(LDFLAGS)
+		
+	del /Q ..\..\..\modules\mod_http.lib
+	del /Q ..\..\..\modules\mod_http.exp
+	
+clean:
+	del /Q ..\..\..\modules\mod_http.*
+

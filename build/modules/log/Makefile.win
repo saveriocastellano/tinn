@@ -1,0 +1,14 @@
+include .\..\Makefile.win	
+
+LOG4CXX_VERSION=0.10.0
+
+all:
+	$(CC) $(CFLAGS) -Iwin32\log4cxx_$(LOG4CXX_VERSION)\include log.cc -o ..\..\..\modules\mod_log.dll \
+		$(LDFLAGS) -Lwin32\log4cxx_$(LOG4CXX_VERSION)\lib\$(ARCH) -llog4cxx
+		
+	del /Q ..\..\..\modules\mod_log.lib
+	del /Q ..\..\..\modules\mod_log.exp
+	
+clean:
+	del /Q ..\..\..\modules\mod_log.*
+

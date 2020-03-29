@@ -1,0 +1,14 @@
+include .\..\Makefile.win	
+
+LEVELDB_VERSION=1.19
+
+all:
+	$(CC) $(CFLAGS) -Iwin32\leveldb_$(LEVELDB_VERSION)\include leveldb.cc -o ..\..\..\modules\mod_leveldb.dll \
+		$(LDFLAGS) -Lwin32\leveldb_$(LEVELDB_VERSION)\lib\$(ARCH) -lleveldb
+		
+	del /Q ..\..\..\modules\mod_leveldb.lib
+	del /Q ..\..\..\modules\mod_leveldb.exp
+	
+clean:
+	del /Q ..\..\..\modules\mod_leveldb.*
+
