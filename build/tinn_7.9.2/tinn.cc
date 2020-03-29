@@ -74,6 +74,77 @@
 
 //saverio
 #ifdef _WIN32
+#include <io.h>
+#include <chrono>
+#include <thread>   
+#include "dirent.h"
+#include "linux.h"
+
+DIR*
+opendir(
+    const char *dirname)
+{
+    struct DIR *dirp;
+
+    /* Must have directory name */
+    if (dirname == NULL  ||  dirname[0] == '\0') {
+        dirent_set_errno (ENOENT);
+        return NULL;
+    }
+
+    /* Allocate memory for DIR structure */
+    dirp = (DIR*) malloc (sizeof (struct DIR));
+    if (!dirp) {
+        return NULL;
+    }
+    {
+        int error;
+        wchar_t wname[PATH_MAX + 1];
+        size_t n;
+
+        /* Convert directory name to wide-character string */
+        error = dirent_mbstowcs_s(
+            &n, wname, PATH_MAX + 1, dirname, PATH_MAX + 1);
+        if (error) {
+            /*
+             * Cannot convert file name to wide-character string.  This
+             * occurs if the string contains invalid multi-byte sequences or
+             * the output buffer is too small to contain the resulting
+             * string.
+             */
+            goto exit_free;
+        }
+
+
+        /* Open directory stream using wide-character name */
+        dirp->wdirp = _wopendir (wname);
+        if (!dirp->wdirp) {
+            goto exit_free;
+        }
+
+    }
+
+    /* Success */
+    return dirp;
+
+    /* Failure */
+exit_free:
+    free (dirp);
+    return NULL;
+}
+
+
+int setenv(const char *name, const char *value, int overwrite)
+{
+    int errcode = 0;
+    if(!overwrite) {
+        size_t envsize = 0;
+        errcode = getenv_s(&envsize, NULL, 0, name);
+        if(errcode || envsize) return errcode;
+    }
+    return _putenv_s(name, value);
+}
+
 
 #else
 #include <dlfcn.h>
@@ -837,9 +908,9 @@ static void OSUnlink(const v8::FunctionCallbackInfo<v8::Value>& args)
 	
 	v8::String::Utf8Value jsPath(isolate,Local<v8::String>::Cast(args[0]));
 #ifdef _WIN32
-	DWORD attr = GetFileAttributes(*jsPath);
+	DWORD attr = GetFileAttributesA(*jsPath);
 	attr &= ~FILE_ATTRIBUTE_READONLY;
-	SetFileAttributes(*jsPath, attr );
+	SetFileAttributesA(*jsPath, attr );
     bool res = DeleteFileA(*jsPath);
 	args.GetReturnValue().Set( v8::Integer::New(isolate, res ? 0 : -1));
 #else
