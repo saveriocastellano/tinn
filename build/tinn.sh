@@ -57,10 +57,16 @@ D8_CC=$V8_DIR/src/d8/d8.cc
 D8_H=$V8_DIR/src/d8/d8.h
 D8_NINJA=$OUT_DIR/obj/d8.ninja
 NINJA=`which ninja`
+D8=$OUT_DIR/d8
 
 if [ ! -f "${NINJA}" ]; then
 	echo "'ninja' was not found. Make sure that depot_tools is in PATH"
 	exit 1 
+fi
+
+if [ ! -f "${D8}" ]; then
+    echo "d8 executable not found in $OUT_DIR, make sure that v8 was built and you provided the correct build_directory" 
+	exit 1
 fi
 
 if [ ! -f "$D8_NINJA" ]; then
@@ -83,9 +89,7 @@ sed -i 's/-lpthread\s-lrt/-lpthread -rdynamic -lrt/' $OUT_DIR/obj/d8.ninja
 cp $BUILD_DIR/tinn_$V8_VER/tinn.cc $D8_CC
 cp $BUILD_DIR/tinn_$V8_VER/tinn.h $D8_H
 
-D8=$OUT_DIR/d8
-
-if [ ! -f "${D8}" ]; then
+if [ ! -f "${D8}.orig" ]; then
 	mv ${D8} ${D8}.orig
 fi
 
