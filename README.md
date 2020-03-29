@@ -22,7 +22,6 @@ Currently the following native modules are available:
 * **SSDB**: allows connecting to SSDB servers. It supports data sharding through key hashing and master/master or master/slave replication for failover and high availability.
 * **LevelDB**: LevelDB database support. Allows implementing a local key-value storage based on LevelDB.
 * **Logging**: Support for logging based on log4cxx library
-* **OS**: implements basic functionalities
 * **HyperLogLog**: implements the HyperLogLog algorithm
 * **JS**: provides support for creating isolated Javascript execution environments (through the d8 'Realm' class)
 
