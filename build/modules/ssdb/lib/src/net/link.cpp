@@ -13,7 +13,7 @@ found in the LICENSE file.
 #include <netdb.h>
 #else
 #include <string>
-#include "win32_types_hiredis.h"
+#include "win32_types.h"
 #include "win32_error.h"
 #include "win32_fdapi.h"
 #define INCL_WINSOCK_API_PROTOTYPES 0 // Important! Do not include Winsock API definitions to avoid conflicts with API entry points defined below.

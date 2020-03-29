@@ -1,5 +1,5 @@
 
-HIREDIS_HOME=platform/linux/hiredis
+HIREDIS_HOME=linux/hiredis
 
 include ../Makefile
 

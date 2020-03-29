@@ -1,6 +1,6 @@
 
-HIREDIS_HOME=platform/linux/hiredis
-CPP_HIREDIS_CLUSTER_HOME=platform/linux/cpp-hiredis-cluster
+HIREDIS_HOME=linux/hiredis
+CPP_HIREDIS_CLUSTER_HOME=cpp-hiredis-cluster
 
 include ../Makefile
 
