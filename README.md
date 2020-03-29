@@ -1,20 +1,19 @@
 # TINN - A Javascript application toolkit built on top of google v8/d8
 TINN stands for TINN-Is-Not-NodeJS. 
 
-TINN is a Javascript application toolkit based on the D8 Javascript shell from google-v8. TINN modifies D8 through a patch
-file in order to add to it the capability of dynamically loading external C++ modules. 
+TINN is a Javascript application toolkit based on the google V8 javascript engine.  
+TINN consists of a javascript interpreter and shell derived from the D8 shell of V8 and native modules that
+are dynamically loaded and provide additional functionalities that are exported to the Javascript context. 
 
-Similarly to native modules in NodeJS, external modules are native shared libraries that provide additional functionalities that are exported to the Javascript context. 
+Applications based on TINN are entirely written in Javascript and run in the TINN shell. 
+Support for threads is available through the 'Worker' Javascript class from D8. 
 
-Applications based on TINN are entirely written in Javascript and run in the (modified) D8 shell. 
-Support for threads is available through the 'Worker' Javascript class implemented in D8. 
-
-Just like NodeJS, TINN is based on the google-v8 engine and it provides a number of native modules each one in charge of implementing a specific functionality that is "exported" to the underlying Javascript context. From an architecture viewpoint instead, TINN is the opposite of NodeJS: in TINN input/output operations are blocking and applications run on multiple cores (Worker class), whereas NodeJS was born as a single-threaded async framework.
+Just like NodeJS, TINN is based on the google-v8 engine and it provides a number of native modules each one in charge of implementing a specific functionality that is "exported" to the underlying Javascript context. From an architecture viewpoint instead, TINN is the opposite of NodeJS: in TINN input/output operations are blocking and applications run on multiple cores (through the Worker class), whereas NodeJS was born as a single-threaded async framework.
 
 
 ## Features
 
-TINN is a complete application toolkit that allows Javascript programmers to write multi-threaded apps, web applications, use databases, send HTTP requests, etc. Additional functionalities can be added easily by implementing new native modules.
+TINN is a complete application toolkit that allows Javascript programmers to write multi-threaded apps, web applications, databases apps, etc. New functionalities can be added easily by implementing additional native modules.
 
 Currently the following native modules are available:
 
@@ -23,9 +22,16 @@ Currently the following native modules are available:
 * **SSDB**: allows connecting to SSDB servers. It supports data sharding through key hashing and master/master or master/slave replication for failover and high availability.
 * **LevelDB**: LevelDB database support. Allows implementing a local key-value storage based on LevelDB.
 * **Logging**: Support for logging based on log4cxx library
-* **OS**: implements basic functionalities to interact with the OS (opening, reading, writing files, environment variables, etc)
+* **OS**: implements basic functionalities
 * **HyperLogLog**: implements the HyperLogLog algorithm
 * **JS**: provides support for creating isolated Javascript execution environments (through the d8 'Realm' class)
+
+In addition to the above modules, the following features are built-in the TINN shell and exported to the javascript context:
+
+- OS functions (opening, reading and writing files, environment variables, etc)
+- require function to load javascript modules in the same fashion as  Node's require function
+- package manager supporting modules version and dependencies (similar to npm)
+- support for building and loading native modules
 
 ## Documentation ##
 Refer to the [wiki](https://github.com/saveriocastellano/tinn/wiki) page.  
@@ -34,27 +40,27 @@ Refer to the [wiki](https://github.com/saveriocastellano/tinn/wiki) page.
 ## Download and setup TINN ##
 
 ### Linux users ###
-Use the following commands to download TINN and the modified d8 executable:
+Use the following commands to download TINN and the pre-built TINN shell executable:
 
 ```sh
 $ wget https://github.com/saveriocastellano/tinn/archive/master.zip
 $ unzip master.zip
 $ cd master
-$ wget https://github.com/saveriocastellano/tinn/releases/download/0.0.1/d8tinn_7.9.2_x64.tgz
-$ tar -zxvf d8tinn_7.9.2_x64.tgz
+$ wget https://github.com/saveriocastellano/tinn/releases/download/0.0.1/tinn_shell_0.0.1_x64.tgz
+$ tar -zxvf tinn_shell_0.0.1_x64.tgz
 ```
-Before continuing, make sure that the d8 executable can run on your machine (x64 machines only):
+Before continuing, make sure that the TINN executable can run on your machine (x64 machines only):
 ```sh
-$ ./d8
+$ ./tinn 
 ```
-If you get a valid shell prompt then it means that d8 is working. In any other case you need to refer to the next section to build the modified version of the d8 exeutable.
+If you get a valid shell prompt then it means that TINN is working. In any other case you need to refer to the next section to build the TINN shell executable.
 
-Next step is to build the TINN modules. You can choose whether to build all modules or just some of them. Once built the modules
-will be under 'modules/' directory and they will be loaded automatically by d8. 
+Next step is to build the TINN modules. You can choose whether to build all modules or just some of them. Once built, the modules
+will be under 'modules/' directory and they will be loaded automatically by TINN. 
 
-Some modules rely on external libraries that must be available on the system when building the module. For instance, the HTTP module depends on CUrl and FCGI++ libraries. 
+Some modules rely on external libraries that must be available on the system when building the module. For instance, the HTTP module depends on CURL and FCGI++ libraries. 
 
-To build all modules you need the following libraries: CUrl, FCGI++, libEvent, log4cxx, leveldb.
+To build all modules you need the following libraries: CURL, FCGI++, libEvent, log4cxx, leveldb.
 
 If you are on Debian/Ubuntu, you can install all needed libraries with this command:
 ```sh
@@ -62,54 +68,49 @@ If you are on Debian/Ubuntu, you can install all needed libraries with this comm
 $ apt-get install libfcgi0ldbl libfcgi-dev libcurl4-gnutls-dev liblog4cxx-dev libevent1-dev libleveldb-dev 
 ````
 
-To build all modules just run 'make' in the 'modules/build' directory. From the TINN root directory do:
+To build all modules run the 'tinn build' command in the directory where you uncompressed TINN:
 
 ```sh
-$ cd modules\build
-$ make
+$ ./tinn build
 ```
-To build just one module do 'make mod_name' where name is the name of the module you want to build. For instance to build only the HTTP module do:
+To build just one module do 'tinn build name' where `name` is the name of the module you want to build. For instance to build only the HTTP module do:
 ```sh
-$ make mod_http
+$ ./tinn build http
 ```
 
 Once you have the modules built you can try running one of the example scripts:
 ```sh
-$ ./d8 examples/helloworld.js
+$ ./tinn examples/helloworld.js
 ```
 
 ### Windows users 
 A binary version of TINN is available for x64 machines:  
 
 
-[tinn_windows_x64_0.0.1.zip (21.5 MB)](https://github.com/saveriocastellano/tinn/releases/download/0.0.1/tinn_windows_x64_0.0.1.zip)  
+[tinn_windows_x64_0.0.1.zip (25 MB)](https://github.com/saveriocastellano/tinn/releases/download/0.0.1/tinn_windows_x64_0.0.1.zip)  
 
 
-Unzip the content of tinn_windows_x64_0.0.1.zip in a directory. To run scripts use the d8.exe executable:
+Unzip the content of tinn_windows_x64_0.0.1.zip in a directory. You can then run scripts by using the tinn.exe executable:
 ```sh
-d8 examples\helloworld.js
+tinn.exe examples\helloworld.js
 ```
 
 
+## Build the TINN shell ##
+Only read this section if the provided TINN executable (see previous section) does not work on your machine.
 
-## Build the modified version of d8 shell ##
-Only read this section if the provided d8 executable (see previous section) does not work on your machine.
+Follow these steps to build the TINN executable:
 
-Follow these steps to build the modified version of the d8 executable which supports loading external native modules:
+* download and build the google v8 engine 
+* use the `tinn_build.sh` script in `build` to build the TINN executable on top of v8 
 
-* download and build google-v8 engine the the d8 shell executable
-* apply the TINN patch to the d8 source files
-* rebuild d8
-* build the TINN native modules
+After building the TINN executable, TINN native modules can be built as already described in the previous section.
 
 ### Linux users 
-Use the commands below to download and build d8 (these steps are taken directly from google-v8 docs at https://v8.dev/docs/build):
+Use the commands below to download and build v8 (these steps are taken directly from google-v8 docs at https://v8.dev/docs/build):
 ```sh
-
 $ git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
 $ export PATH=$PATH:`pwd`/depot_tools
-$ mkdir ~/v8
-$ cd ~/v8
 $ fetch v8
 $ cd v8
 $ gclient sync
@@ -118,23 +119,14 @@ $ ./build/install-build-deps.sh
 $ tools/dev/gm.py x64.release
 
 ```
-Now assuming you have donwloaded TINN and uncompressed it in `~/master/` copy the modified d8 sources with the following command:
+Now from the TINN directory run the `tinn_build.sh` script and pass it the directory of v8 from the previous step:
 ```sh
-$ cp  ~/master/modules/build/libs/v8_7.9.2/d8.* ./src/d8/ 
+$ ./build/tinn_build.sh /opt/v8
 ```
-Now use the following command to add the '-rdynamic' link flag to the d8 makefile. This flag causes
-the d8 executable to export v8 symbols when dynamically loading external modules:
-```sh
-$ sed -i 's/-lpthread\s-lrt/-lpthread -lrt -rdynamic/' out/x64.release/obj/d8.ninja
-```
+In the above command you need to change `/opt/v8/` to wherever you put v8 in your sytem.  
+If the script was successful then you will have the following files in the TINN directory:
 
-Finally, re-build the (modified) d8 executable (the following command only causes the file src/d8/d8.cc to be recompiled and then relinks the d8 executable):
-```sh
-$ tools/dev/gm.py x64.release
-```
-If the build is successful you will have in `out\x64.release` the three binaries that you need to copy into the TINN directory (~/master):
-
-- d8
+- tinn 
 - natives_blob.bin
 - snapshot_blob.bin
 
