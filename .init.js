@@ -982,7 +982,7 @@ var __dirname = path.dirname(module.filename);
 
 process.version = version();
 
-if (process.platform === 'win32') {
+if (process.platform === 'win32' && typeof(Http)!='undefined') {
 	function fixPath(p) { return p.split('\\').join('\\\\'); }	
 	Http._openSocket = Http.openSocket;
 	Http.openSocket = function(addr, nginxPort) {
@@ -1532,19 +1532,6 @@ var pkg = new function() {
 			//deps?
 			var pkgJsonPath = path.resolve(pkgInstDir, 'package.json');
 			
-			//REMOVE ME
-			if (!os.isFileAndReadable(pkgJsonPath) && obj.name == 'tinn_web') {				
-				var json = JSON.stringify({
-					"dependencies": {
-						"detect-newline": "^2.1.0",
-						"uuid": "^3.3.2",
-						"bluebird": "^3.5.3",
-					}				
-				},null,4);
-				os.writeFile(pkgJsonPath, json);
-			}
-			//END
-			
 			if (os.isFileAndReadable(pkgJsonPath)) {
 				var pkgJson = JSON.parse(os.readFile(pkgJsonPath));
 				if (typeof(pkgJson.dependencies)!='undefined') {
@@ -1756,12 +1743,20 @@ var pkg = new function() {
 	}
 	
 	this._buildModule = function(modDir) {		
-		var cmd = ['make','-C', modDir];
+		var isWin32 = (process.platform=='win32');
+		var mod = path.basename(modDir);
+
+		var cmd;
+		if (isWin32) {
+			cmd = [path.resolve(this._getBuildDir(), 'scripts', 'win32', 'build.bat'), mod];
+		} else {
+			cmd = ['make','-C', modDir];				
+		}
+
 		print(cmd.join(' '));
 		var res = os.exec(cmd);
 		print(res.output);
-		var mod = path.basename(modDir);
-		var modlib = path.resolve(process.execPath, 'modules', 'mod_'+mod+'.'+(process.platform=='win32'?'dll':'so'));
+		var modlib = path.resolve(process.execPath, 'modules', 'mod_'+mod+'.'+(isWin32?'dll':'so'));
 		if (!os.isFileAndReadable(modlib)) {
 			this._eprint("building of " + mod + " failed");
 			return null;
@@ -1770,7 +1765,14 @@ var pkg = new function() {
 	}
 
 	this._cleanModule = function(modDir) {		
-		var cmd = ['make','-C', modDir, 'clean'];
+		var isWin32 = (process.platform=='win32');
+		var mod = path.basename(modDir);
+		var cmd;
+		if (isWin32) {
+			cmd = [path.resolve(this._getBuildDir(), 'scripts', 'win32', 'build.bat'), mod, 'clean'];
+		} else {
+			cmd = ['make','-C', modDir, 'clean'];				
+		}	
 		print(cmd.join(' '));
 		var res = os.exec(cmd);
 		print(res.output);
