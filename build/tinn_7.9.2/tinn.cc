@@ -1,6 +1,16 @@
+/*
+Copyright (c) 2020 TINN by Saverio Castellano. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+
+
+credits: 
+	- 80% of the code in this file was taken from d8.cc of google v8 engine
+*/
 // Copyright 2012 the V8 project authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+
 
 #include <errno.h>
 #include <stdlib.h>
