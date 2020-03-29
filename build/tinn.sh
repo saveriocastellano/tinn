@@ -90,13 +90,17 @@ cp $BUILD_DIR/tinn_$V8_VER/tinn.cc $D8_CC
 cp $BUILD_DIR/tinn_$V8_VER/tinn.h $D8_H
 
 if [ ! -f "${D8}.orig" ]; then
-	mv ${D8} ${D8}.orig
+	cp ${D8} ${D8}.orig
 fi
 
+D8_LM=`stat -c %X ${D8}`
 $NINJA -C $OUT_DIR
+D8_LM_AFTER=`stat -c %X ${D8}`
 
-if [ ! -f "${D8}" ]; then
+if [ "$D8_LM" = "$D8_LM_AFTER" ]; then
+	echo " "
 	echo "building TINN failed"
+	echo " " 
 	exit 1
 fi
 

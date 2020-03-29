@@ -1240,7 +1240,8 @@ static void OSSystem(const v8::FunctionCallbackInfo<v8::Value>&  args) {
 	}
 	v8::String::Utf8Value jsStr(isolate, Local<v8::String>::Cast(args[0]));
 #ifndef _WIN32
-	system(*jsStr);
+	int res = system(*jsStr);
+	args.GetReturnValue().Set(v8::Integer::New(isolate, res));	
 #else	
     STARTUPINFOA si;
     PROCESS_INFORMATION pi;
