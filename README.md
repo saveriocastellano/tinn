@@ -304,7 +304,7 @@ http {
 
 ```
 
-## Benchmarks - TINN vs NodeJS
+## Benchmarks - TINN vs NodeJS ##
 Here we show some tests that have been made to compare the performance between TINN vs NodeJS. 
 The tests were executed on Linux on a quad core Intel(R) Xeon(R) CPU E5-2670 0 @ 2.60GHz, using NGINX as the HTTP frontend for TINN.\
 &nbsp;  
@@ -312,7 +312,7 @@ The tests were executed on Linux on a quad core Intel(R) Xeon(R) CPU E5-2670 0 @
 This is a single-thread test where both TINN and NodeJS are using one single worker to process requests.\
 The test consists in sending 100k HTTP requests using the `ab` benchmark tool.
 
-#### Node Hello World ####
+#### NodeJS Hello World ####
 ```sh
 const http = require('http');
 
@@ -405,4 +405,61 @@ Percentage of the requests served within a certain time (ms)
  100%     19 (longest request)
 
 ```
+
+#### Conclusion ####
+From the results of this test we see that for the simple `Hello World` case the performance of TINN is very similar to NodeJS and only slightly better.  
+Let's introduce some I/O and move on to a more complex test case...
+
+
+### Benchmark2: Generate a random file and send its content in the response ###
+In this second test we will use some code that will do the following at every request:
+* generate a random string of 108kb
+* create a file with a random name and write the generated string into it 
+* read the content of the file into a new string
+* send the response using the content of the new string
+
+### NodeJS code ###
+```sh
+const hostname = '127.0.0.1';
+const port = 3000;
+
+//server.js
+var http = require('http');    
+var server = http.createServer(handler);
+var fs = require('fs');
+
+function handler(request, response) {
+    response.writeHead(200, {'Content-Type': 'text/plain'});
+
+    //generate a random filename
+    do{fname = (1 + Math.floor(Math.random()*99999999))+'.txt';
+    } while(fs.existsSync(fname));
+
+    //generate a random string of 108kb
+    var payload="";
+    for(i=0;i<108000;i++)
+    {
+        n=Math.floor(65 + (Math.random()*(122-65)) );
+        payload+=String.fromCharCode(n);
+    }
+
+    //write the string to disk in async manner
+    fs.writeFile(fname, payload, function(err) {
+            if (err) console.log(err);
+
+            //read the string back from disk in async manner
+            fs.readFile(fname, function (err, data) {
+                if (err) console.log(err);
+                response.end(data); //write the string back on the response stream
+            });  
+        }
+    );
+}
+
+server.listen(port, hostname, () => {
+  console.log(`Server running at http://${hostname}:${port}/`);
+});
+```
+
+
 
