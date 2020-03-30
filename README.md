@@ -172,6 +172,8 @@ while(true) {
 
 Next thing to do is to define a location in NGINX configuration file that forwards all incoming HTTP requests to our TINN web application. Here is how a complete nginx.conf file would look like (note the 'fastcgi_pass' directive pointing to the ip and port of our example server):
 
+**NOTE FOR WINDOWS USERS**: if you downloaded the TINN package (tinn_windows_x64_0.0.1.zip) you don't need to deal with configuring NGINX, the package contains a working NGINX server and the `Http.openSocket` automatically takes care of configuring and starting NGINX to point to port specified in the `Http.openSocket` call
+
 ```sh
 
 events {}
@@ -302,13 +304,15 @@ http {
 
 ```
 
-## Benchmark - TINN vs NodeJS
-Here we show a performance comparison between TINN vs NodeJS. 
-The test was executed on Linux, using NGINX as the HTTP frontend for TINN.\
+## Benchmarks - TINN vs NodeJS
+Here we show some tests that have been made to compare the performance between TINN vs NodeJS. 
+The tests were executed on Linux on a quad core Intel(R) Xeon(R) CPU E5-2670 0 @ 2.60GHz, using NGINX as the HTTP frontend for TINN.\
+&nbsp;  
+### Benchmark1: Hello World in HTTP ###
 This is a single-thread test where both TINN and NodeJS are using one single worker to process requests.\
 The test consists in sending 100k HTTP requests using the `ab` benchmark tool.
 
-### Node Hello World
+#### Node Hello World ####
 ```sh
 const http = require('http');
 
@@ -327,7 +331,7 @@ server.listen(port, hostname, () => {
 
 ```
 
-### TINN Hello World
+#### TINN Hello World ####
 ```sh
 var sockAddr = ':8210'
 Http.openSocket(sockAddr);
@@ -349,33 +353,7 @@ This is the command used for the benchmark (given that this is  a single-thread 
 ab -c 1 -n 100000 http://127.0.0.1/
 ```
 
-### TINN result
-```sh
-Concurrency Level:      1
-Time taken for tests:   49.832 seconds
-Complete requests:      100000
-Failed requests:        0
-Total transferred:      14300000 bytes
-HTML transferred:       1200000 bytes
-Requests per second:    2006.73 [#/sec] (mean)
-Time per request:       0.498 [ms] (mean)
-Time per request:       0.498 [ms] (mean, across all concurrent requests)
-Transfer rate:          280.24 [Kbytes/sec] received
-
-Percentage of the requests served within a certain time (ms)
-  50%      0
-  66%      0
-  75%      0
-  80%      1
-  90%      1
-  95%      1
-  98%      2
-  99%      2
- 100%     19 (longest request)
-
-```
-
-### NodeJS result
+#### NodeJS result ####
 ```sh
 
 Concurrency Level:      1
@@ -401,3 +379,30 @@ Percentage of the requests served within a certain time (ms)
  100%     26 (longest request)
 
 ```
+
+#### TINN result ####
+```sh
+Concurrency Level:      1
+Time taken for tests:   49.832 seconds
+Complete requests:      100000
+Failed requests:        0
+Total transferred:      14300000 bytes
+HTML transferred:       1200000 bytes
+Requests per second:    2006.73 [#/sec] (mean)
+Time per request:       0.498 [ms] (mean)
+Time per request:       0.498 [ms] (mean, across all concurrent requests)
+Transfer rate:          280.24 [Kbytes/sec] received
+
+Percentage of the requests served within a certain time (ms)
+  50%      0
+  66%      0
+  75%      0
+  80%      1
+  90%      1
+  95%      1
+  98%      2
+  99%      2
+ 100%     19 (longest request)
+
+```
+
