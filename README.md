@@ -10,6 +10,16 @@ Support for threads is available through the 'Worker' Javascript class from D8.
 
 Just like NodeJS, TINN is based on the google-v8 engine and it provides a number of native modules each one in charge of implementing a specific functionality that is "exported" to the underlying Javascript context. From an architecture viewpoint instead, TINN is the opposite of NodeJS: in TINN input/output operations are blocking and applications run on multiple cores (through the Worker class), whereas NodeJS was born as a single-threaded async framework.
 
+# Why TINN ##
+TINN was started as an experiment and it is not intended to be a competitor to NodeJS. However it can be an alternative to it.  
+While NodeJS has many advantages without a doubt, as it is a very mature and complete framework with a huge community, in order to better describe TINN a good start is to list some of its benefits with respect to NodeJS: 
+
+- TINN has a shorter learning curve. No need to learn about promises and async stuff, and it's not necessary to learn about modules and `require`, one can simply load scripts in the current scope using the build-in `load` function
+- By leveraging on the `Worker` class, TINN makes it very easy to implement multi-threaded apps 
+- TINN is a javascript shell, javascript interpreter and package manager in a single executable. No need to install other tools or external package managers
+- people familiar with `PHP` will feel immediataly confortable choosing TINN as a web framework: TINN Web framework has many similarities to PHP 
+- TINN seems to outperform NodeJS. See the benchmarks `
+
 
 ## Features
 
