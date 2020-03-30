@@ -418,7 +418,7 @@ In this second test we will use some code that will do the following at every re
 * read the content of the file into a new string
 * send the response using the content of the new string
 
-### NodeJS code ###
+#### NodeJS code ####
 ```sh
 const hostname = '127.0.0.1';
 const port = 3000;
@@ -461,5 +461,48 @@ server.listen(port, hostname, () => {
 });
 ```
 
+#### TINN code ####
+```sh
+
+var workerCode = `
+while(true) {
+	Http.accept();
+	
+    //generate a random filename
+    do{fname = (1 + Math.floor(Math.random()*99999999))+'.txt';
+    } while(os.isFileAndReadable(fname));
+
+    //generate a random string of 108kb
+    var payload="";
+    for(i=0;i<108000;i++)
+    {
+        n=Math.floor(65 + (Math.random()*(122-65)) );
+        payload+=String.fromCharCode(n);
+    }
+
+    //write the string to disk in async manner
+    os.writeFile(fname, payload);
+	var data = os.readFile(fname);
+
+	Http.print("Status: 200 OK\r\n");
+	Http.print("Content-type: text/plain\r\n");
+	Http.print("\r\n");
+	Http.print(data);
+	Http.finish();	
+}
+`;
 
 
+var sockAddr = ':8200'
+Http.openSocket(sockAddr);
+
+print("Server listening on: " + sockAddr);
+
+var threads = 50;
+
+for(var i=0; i<threads; i++) {
+	new Worker(workerCode, {type:'string'});
+}
+
+
+```
