@@ -418,6 +418,12 @@ In this second test we will use some code that will do the following at every re
 * read the content of the file into a new string
 * send the response using the content of the new string
 
+In the benchmark we will send 2000 requests and use a concurrency set to 50: 
+```sh
+ab -c 50 -n 2000 http://127.0.0.1/
+```
+
+
 #### NodeJS code ####
 ```sh
 const hostname = '127.0.0.1';
@@ -573,6 +579,9 @@ Percentage of the requests served within a certain time (ms)
  100%    516 (longest request)
 
 ```
+
+From these results there seem to be a huge difference. But the NodeJS script is using a single core. Let's rewrite it using the `cluster` module so that it can use multiple cores:
+
 #### NodeJS code (multicore) ####
 ```sh
 const cluster = require('cluster');
@@ -630,6 +639,8 @@ if (cluster.isMaster) {
   }).listen(3000);
 }
 ```
+Executing the benchmark again with the multicore script yelds the following result:
+
 
 #### Node result ####
 ```sh
@@ -663,3 +674,9 @@ Percentage of the requests served within a certain time (ms)
   99%    320
  100%    439 (longest request)
 ```
+
+
+#### Conclusion #### 
+In this second bencmark the time taken by TINN to reply to the 2000 requests was 4.9 seconds, while NodeJS multicore took 6.7 seconds.  
+The performance of TINN for this test is 25% better than NodeJS.
+
