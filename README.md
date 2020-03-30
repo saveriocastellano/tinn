@@ -573,3 +573,93 @@ Percentage of the requests served within a certain time (ms)
  100%    516 (longest request)
 
 ```
+#### NodeJS code (multicore) ####
+```sh
+const cluster = require('cluster');
+const http = require('http');
+const numCPUs = require('os').cpus().length; //number of CPUS
+var fs = require('fs');
+
+if (cluster.isMaster) {
+  // Fork workers.
+  for (var i = 0; i < numCPUs; i++) {
+    cluster.fork();    //creating child process
+  }
+
+  //on exit of cluster
+  cluster.on('exit', (worker, code, signal) => {
+      if (signal) {
+        console.log(`worker was killed by signal: ${signal}`);
+      } else if (code !== 0) {
+        console.log(`worker exited with error code: ${code}`);
+      } else {
+        console.log('worker success!');
+      }
+  });
+} else {
+  // Workers can share any TCP connection
+  // In this case it is an HTTP server
+  http.createServer((req, response) => {
+    response.writeHead(200, {'Content-Type': 'text/plain'});
+
+    //generate a random filename
+    do{fname = (1 + Math.floor(Math.random()*99999999))+'.txt';
+    } while(fs.existsSync(fname));
+
+    //generate a random string of 108kb
+    var payload="";
+    for(i=0;i<108000;i++)
+    {
+        n=Math.floor(65 + (Math.random()*(122-65)) );
+        payload+=String.fromCharCode(n);
+    }
+
+    //write the string to disk in async manner
+    fs.writeFile(fname, payload, function(err) {
+            if (err) console.log(err);
+
+            //read the string back from disk in async manner
+            fs.readFile(fname, function (err, data) {
+                if (err) console.log(err);
+                response.end(data); //write the string back on the response stream
+            });  
+        }
+    );
+	  
+	  
+  }).listen(3000);
+}
+```
+
+#### Node result ####
+```sh
+Concurrency Level:      50
+Time taken for tests:   6.734 seconds
+Complete requests:      2000
+Failed requests:        20
+   (Connect: 0, Receive: 0, Length: 20, Exceptions: 0)
+Total transferred:      214513040 bytes
+HTML transferred:       214311040 bytes
+Requests per second:    297.00 [#/sec] (mean)
+Time per request:       168.353 [ms] (mean)
+Time per request:       3.367 [ms] (mean, across all concurrent requests)
+Transfer rate:          31108.15 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.5      0       8
+Processing:    62  167  45.4    151     436
+Waiting:       62  155  42.7    140     428
+Total:         62  167  45.5    151     439
+
+Percentage of the requests served within a certain time (ms)
+  50%    151
+  66%    166
+  75%    181
+  80%    194
+  90%    237
+  95%    263
+  98%    288
+  99%    320
+ 100%    439 (longest request)
+```
