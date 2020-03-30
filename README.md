@@ -21,7 +21,7 @@ While NodeJS has many advantages without a doubt, as it is a very mature and com
 - TINN seems to outperform NodeJS. See the benchmarks `
 
 
-## Features
+## Features ##
 
 TINN is a complete application toolkit that allows Javascript programmers to write multi-threaded apps, web applications, databases apps, etc. New functionalities can be added easily by implementing additional native modules.
 
