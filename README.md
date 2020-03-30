@@ -484,16 +484,16 @@ while(true) {
     os.writeFile(fname, payload);
 	var data = os.readFile(fname);
 
-	Http.print("Status: 200 OK\r\n");
-	Http.print("Content-type: text/plain\r\n");
-	Http.print("\r\n");
+	Http.print('Status: 200 OK\\r\\n');
+	Http.print('Content-type: text/plain\\r\\n');
+	Http.print('\\r\\n');
 	Http.print(data);
 	Http.finish();	
 }
 `;
 
 
-var sockAddr = ':8200'
+var sockAddr = ':8210'
 Http.openSocket(sockAddr);
 
 print("Server listening on: " + sockAddr);
@@ -504,5 +504,72 @@ for(var i=0; i<threads; i++) {
 	new Worker(workerCode, {type:'string'});
 }
 
+
+```
+#### NodeJS result #### 
+
+```sh
+Concurrency Level:      50
+Time taken for tests:   59.583 seconds
+Complete requests:      2000
+Failed requests:        37
+   (Connect: 0, Receive: 0, Length: 37, Exceptions: 0)
+Total transferred:      214356400 bytes
+HTML transferred:       214154400 bytes
+Requests per second:    33.57 [#/sec] (mean)
+Time per request:       1489.572 [ms] (mean)
+Time per request:       29.791 [ms] (mean, across all concurrent requests)
+Transfer rate:          3513.30 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.7      0       9
+Processing:   455 1485 197.6   1464    2373
+Waiting:      391 1316 229.6   1304    1885
+Total:        455 1486 197.6   1464    2373
+
+Percentage of the requests served within a certain time (ms)
+  50%   1464
+  66%   1572
+  75%   1620
+  80%   1626
+  90%   1745
+  95%   1804
+  98%   1848
+  99%   1925
+ 100%   2373 (longest request)
+
+```
+
+#### TINN result ####
+```sh
+Concurrency Level:      50
+Time taken for tests:   4.924 seconds
+Complete requests:      2000
+Failed requests:        0
+Total transferred:      216264000 bytes
+HTML transferred:       216000000 bytes
+Requests per second:    406.20 [#/sec] (mean)
+Time per request:       123.093 [ms] (mean)
+Time per request:       2.462 [ms] (mean, across all concurrent requests)
+Transfer rate:          42893.27 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    3   7.5      0      56
+Processing:     8  118  61.9    106     514
+Waiting:        0  104  62.9     92     512
+Total:          8  122  61.8    111     516
+
+Percentage of the requests served within a certain time (ms)
+  50%    111
+  66%    136
+  75%    152
+  80%    163
+  90%    196
+  95%    240
+  98%    308
+  99%    331
+ 100%    516 (longest request)
 
 ```
