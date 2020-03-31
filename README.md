@@ -485,8 +485,7 @@ while(true) {
         n=Math.floor(65 + (Math.random()*(122-65)) );
         payload+=String.fromCharCode(n);
     }
-
-    //write the string to disk in async manner
+    
     os.writeFile(fname, payload);
 	var data = os.readFile(fname);
 
