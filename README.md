@@ -859,3 +859,166 @@ Percentage of the requests served within a certain time (ms)
 
 #### Conclusion #### 
 The results of this test are similar: TINN took 6% less than NodeJS to execute the test.
+
+
+### Benchmark 4: serving static files ###
+This test consists in sending 100k requests with concurrency set to 50 to download the following HTML file:
+```sh
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title></title>
+</head>
+<body>
+Hello World
+</body>
+</html>
+
+```
+The following command is used:
+```sh
+ ab -n 100000 -c 50 http://127.0.0.1:5000/index.html
+```
+
+#### TINN code ####
+```sh
+var workerCode = `
+
+Redis.connect('127.0.0.1', 6379);
+
+while(true) {
+	Http.accept();
+	
+	var txt = os.readFile('.'+Http.getParam('SCRIPT_NAME'));
+		
+	Http.print('Status: 200 OK\\r\\n');
+	Http.print('Content-type: text/html\\r\\n');
+	Http.print('\\r\\n');
+	Http.print(txt);
+	Http.finish();	
+}
+`;
+
+
+var sockAddr = ':8210'
+Http.openSocket(sockAddr);
+
+print("Server listening on: " + sockAddr);
+
+var threads = 20;
+
+for(var i=0; i<threads; i++) {
+	new Worker(workerCode, {type:'string'});
+}
+```
+
+#### NodeJS code ####
+```sh
+const cluster = require('cluster');
+const numCPUs = require('os').cpus().length; //number of CPUS
+var fs = require('fs');
+
+if (cluster.isMaster) {
+  // Fork workers.
+  for (var i = 0; i < numCPUs; i++) {
+    cluster.fork();    //creating child process
+  }
+
+  //on exit of cluster
+  cluster.on('exit', (worker, code, signal) => {
+      if (signal) {
+        console.log(`worker was killed by signal: ${signal}`);
+      } else if (code !== 0) {
+        console.log(`worker exited with error code: ${code}`);
+      } else {
+        console.log('worker success!');
+      }
+  });
+} else {
+	
+
+var http = require('http');
+
+var nStatic = require('node-static');
+
+var fileServer = new nStatic.Server('./');
+
+http.createServer(function (req, res) {
+    
+    fileServer.serve(req, res);
+
+}).listen(5000);
+
+}
+
+```
+
+#### TINN result ####
+```sh
+Concurrency Level:      50
+Time taken for tests:   6.784 seconds
+Complete requests:      100000
+Failed requests:        0
+Non-2xx responses:      100000
+Total transferred:      33700000 bytes
+HTML transferred:       17800000 bytes
+Requests per second:    14739.59 [#/sec] (mean)
+Time per request:       3.392 [ms] (mean)
+Time per request:       0.068 [ms] (mean, across all concurrent requests)
+Transfer rate:          4850.82 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    1   0.5      1      15
+Processing:     0    2   1.1      2      17
+Waiting:        0    2   1.0      2      16
+Total:          0    3   1.3      3      22
+
+Percentage of the requests served within a certain time (ms)
+  50%      3
+  66%      3
+  75%      4
+  80%      4
+  90%      4
+  95%      6
+  98%      8
+  99%      9
+ 100%     22 (longest request)
+```
+
+#### Node result ####
+
+```sh
+Concurrency Level:      50
+Time taken for tests:   25.466 seconds
+Complete requests:      100000
+Failed requests:        0
+Total transferred:      37900000 bytes
+HTML transferred:       12100000 bytes
+Requests per second:    3926.82 [#/sec] (mean)
+Time per request:       12.733 [ms] (mean)
+Time per request:       0.255 [ms] (mean, across all concurrent requests)
+Transfer rate:          1453.38 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.3      0      14
+Processing:     1   13   5.5     11     188
+Waiting:        1   11   4.6     10     173
+Total:          2   13   5.6     11     200
+
+Percentage of the requests served within a certain time (ms)
+  50%     11
+  66%     13
+  75%     14
+  80%     16
+  90%     19
+  95%     22
+  98%     26
+  99%     30
+ 100%    200 (longest request)
+
+```
+#### Conclusion ####
+This test took 6.8 seconds to execute with TINN and 12.7 seconds with NodeJS, so basically TINN was nearly twice as fast.
