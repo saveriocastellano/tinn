@@ -688,7 +688,7 @@ The code for this test at every request does the following:
 
 #### TINN code ####
 
-
+```sh
 var workerCode = `
 
 Redis.connect('127.0.0.1', 6379);
@@ -733,7 +733,7 @@ var threads = 20;
 for(var i=0; i<threads; i++) {
 	new Worker(workerCode, {type:'string'});
 }
-
+```
 #### NodeJS code ####
 
 ```sh
