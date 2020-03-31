@@ -680,3 +680,183 @@ Percentage of the requests served within a certain time (ms)
 In this second bencmark the time taken by TINN to reply to the 2000 requests was 4.9 seconds, while NodeJS multicore took 6.7 seconds.  
 The performance of TINN for this test is 25% better than NodeJS.
 
+### Benchmark 3: Redis hmset/hgetall ###
+The code for this test at every request does the following:
+
+* sets a hash in redis with 100 keys whose values are strings of 1000 characters
+* reads all keys in the hash
+
+#### TINN code ####
+
+
+var workerCode = `
+
+Redis.connect('127.0.0.1', 6379);
+
+while(true) {
+	Http.accept();
+	
+	var values = [];
+	for (var k=0; k<100; k++) {
+		//generate a random string of 108kb
+		var payload="";
+		for(i=0;i<1000;i++)
+		{
+			n=Math.floor(65 + (Math.random()*(122-65)) );
+			payload+=String.fromCharCode(n);
+		}
+		var key = 'key'+(1 + Math.floor(Math.random()*99999999));
+		values.push(key);
+		values.push(payload)
+	}
+	Redis.command("del mykey");
+	Redis.command('hmset mykey ' + values.join(' '));
+	var res = Redis.command('hgetall mykey');
+		
+		
+	Http.print('Status: 200 OK\\r\\n');
+	Http.print('Content-type: text/plain\\r\\n');
+	Http.print('\\r\\n');
+	Http.print('done');
+	Http.finish();	
+}
+`;
+
+
+var sockAddr = ':8210'
+Http.openSocket(sockAddr);
+
+print("Server listening on: " + sockAddr);
+
+var threads = 20;
+
+for(var i=0; i<threads; i++) {
+	new Worker(workerCode, {type:'string'});
+}
+
+#### NodeJS code ####
+
+```sh
+const cluster = require('cluster');
+const http = require('http');
+const numCPUs = require('os').cpus().length; //number of CPUS
+var fs = require('fs');
+
+if (cluster.isMaster) {
+  // Fork workers.
+  for (var i = 0; i < numCPUs; i++) {
+    cluster.fork();    //creating child process
+  }
+
+  //on exit of cluster
+  cluster.on('exit', (worker, code, signal) => {
+      if (signal) {
+        console.log(`worker was killed by signal: ${signal}`);
+      } else if (code !== 0) {
+        console.log(`worker exited with error code: ${code}`);
+      } else {
+        console.log('worker success!');
+      }
+  });
+} else {
+	
+	var redis = require('redis');
+	var client = redis.createClient();
+
+	client.on('connect', function() {
+		console.log('connected to redis');
+	});
+
+    http.createServer((req, response) => {
+		response.writeHead(200, {'Content-Type': 'text/plain'});
+
+		var values = [];
+		for (var k=0; k<100; k++) {
+			var payload="";
+			for(i=0;i<1000;i++)
+			{
+				n=Math.floor(65 + (Math.random()*(122-65)) );
+				payload+=String.fromCharCode(n);
+			}
+			var key = 'key'+(1 + Math.floor(Math.random()*99999999));
+			values.push(key);
+			values.push(payload)
+		}
+		client.del("mykey");
+		client.hmset.apply(client, ['mykey'].concat(values));
+		client.hgetall('mykey', function(err, object) {
+			response.end('done');
+			
+		});		
+		
+
+    }).listen(3000);
+}
+```
+
+#### TINN result ####
+```sh
+Concurrency Level:      50
+Time taken for tests:   7.907 seconds
+Complete requests:      2000
+Failed requests:        0
+Total transferred:      272000 bytes
+HTML transferred:       8000 bytes
+Requests per second:    252.93 [#/sec] (mean)
+Time per request:       197.685 [ms] (mean)
+Time per request:       3.954 [ms] (mean, across all concurrent requests)
+Transfer rate:          33.59 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.6      0      21
+Processing:    87  196  45.6    187     425
+Waiting:       87  196  45.5    187     425
+Total:         89  196  45.6    187     426
+
+Percentage of the requests served within a certain time (ms)
+  50%    187
+  66%    206
+  75%    219
+  80%    226
+  90%    254
+  95%    291
+  98%    319
+  99%    340
+ 100%    426 (longest request)
+```
+#### NodeJS Result ####
+```sh
+Concurrency Level:      50
+Time taken for tests:   8.408 seconds
+Complete requests:      2000
+Failed requests:        0
+Total transferred:      210000 bytes
+HTML transferred:       8000 bytes
+Requests per second:    237.86 [#/sec] (mean)
+Time per request:       210.212 [ms] (mean)
+Time per request:       4.204 [ms] (mean, across all concurrent requests)
+Transfer rate:          24.39 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.3      0       3
+Processing:    43  208  33.8    203     472
+Waiting:       26  193  31.3    188     456
+Total:         45  208  33.8    203     473
+
+Percentage of the requests served within a certain time (ms)
+  50%    203
+  66%    215
+  75%    223
+  80%    229
+  90%    250
+  95%    271
+  98%    298
+  99%    317
+ 100%    473 (longest request)
+
+```
+
+#### Conclusion #### 
+The results of this test are similar: TINN took 6% less than NodeJS to execute the test.
