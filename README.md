@@ -2,7 +2,7 @@
 TINN stands for TINN-Is-Not-NodeJS. 
 
 TINN is a Javascript application toolkit based on the google V8 javascript engine.  
-TINN consists of a javascript interpreter and shell derived from the D8 shell of V8 and native modules that
+TINN consists of a javascript interpreter and shell derived from the D8 shell of google V8 and native modules that
 are dynamically loaded and provide additional functionalities that are exported to the Javascript context. 
 
 Applications based on TINN are entirely written in Javascript and run in the TINN shell. 
