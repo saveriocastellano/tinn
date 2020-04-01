@@ -28,7 +28,7 @@ Benchmark 3|redis hmset/hgetall|2000|50|7.9|8.4|6%
 Benchmark 4|serve static file|100000|50|6.8|12.7|47%
 
 
-See the [benchmarks](https://github.com/saveriocastellano/tinn#benchmark---tinn-vs-nodejs) `
+See the [benchmarks](https://github.com/saveriocastellano/tinn/blob/master/README.md#benchmarks---tinn-vs-nodejs) `
 
 
 ## Features ##
