@@ -43,14 +43,15 @@ Currently the following native modules are available:
 * **LevelDB**: LevelDB database support. Allows implementing a local key-value storage based on LevelDB.
 * **Logging**: Support for logging based on log4cxx library
 * **HyperLogLog**: implements the HyperLogLog algorithm
-* **JS**: provides support for creating isolated Javascript execution environments (through the d8 'Realm' class)
 
 In addition to the above modules, the following features are built-in the TINN shell and exported to the javascript context:
 
-- OS functions (opening, reading and writing files, environment variables, etc)
-- require function to load javascript modules in the same fashion as  Node's require function
+- `OS` functions (opening, reading and writing files, environment variables, etc)
+- `require` function to load javascript modules in the same fashion as  Node's require function
 - package manager supporting modules version and dependencies (similar to npm)
 - support for building and loading native modules
+- support for threads via the `Worker` class
+- support for isolated javascript execution contexts (aka `Realms`) 
 
 ## Documentation ##
 Refer to the [wiki](https://github.com/saveriocastellano/tinn/wiki) page.  
