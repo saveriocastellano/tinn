@@ -18,7 +18,17 @@ While NodeJS has many advantages without a doubt, as it is a very mature and com
 - By leveraging on the `Worker` class, TINN makes it very easy to implement multi-threaded apps 
 - TINN is a javascript shell, javascript interpreter and package manager in a single executable. No need to install other tools or external package managers
 - people familiar with `PHP` will feel immediataly confortable choosing TINN as a web framework: [TINN Web](https://github.com/saveriocastellano/tinn/wiki/TINN-Web) framework has many similarities to PHP 
-- TINN seems to outperform NodeJS. See the [benchmarks](https://github.com/saveriocastellano/tinn#benchmark---tinn-vs-nodejs) `
+- TINN seems to have better performance than NodeJS. See the table below
+
+&nbsp;|test type|requests|concurrency|TINN time (secs)|NodeJS time (secs)|diff%
+:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:
+Benchmark 1|hello world|100000|1|49.8|50.7|2%
+Benchmark 2|generate random file|2000|50|4.9|6.7|27%
+Benchmark 3|redis hmset/hgetall|2000|50|7.9|8.4|6%
+Benchmark 4|serve static file|100000|50|6.8|12.7|47%
+
+
+See the [benchmarks](https://github.com/saveriocastellano/tinn#benchmark---tinn-vs-nodejs) `
 
 
 ## Features ##
