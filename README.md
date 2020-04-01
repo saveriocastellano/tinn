@@ -308,6 +308,16 @@ http {
 Here we show some tests that have been made to compare the performance between TINN vs NodeJS. 
 The tests were executed on Linux on a quad core Intel(R) Xeon(R) CPU E5-2670 0 @ 2.60GHz, using NGINX as the HTTP frontend for TINN.\
 &nbsp;  
+Here is a table that summarizes the results of the four benchmarks that will be presented.
+
+ |**test type**|**requests**|**concurrency**|**TINN time (secs)**|**NodeJS time (secs)**|**diff% **
+:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:
+Benchmark 1|hello world|100000|1|49.8|50.7|2%
+Benchmark 2|generate random file|2000|50|4.9|6.7|27%
+Benchmark 3|redis hmset/hgetall|2000|50|7.9|8.4|6%
+Benchmark 4|serve static file|100000|50|6.8|12.7|47%
+
+
 ### Benchmark1: Hello World in HTTP ###
 This is a single-thread test where both TINN and NodeJS are using one single worker to process requests.\
 The test consists in sending 100k HTTP requests using the `ab` benchmark tool.
