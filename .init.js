@@ -1258,9 +1258,11 @@ var pkg = new function() {
 		if (isNaN(parseInt(id))) {
 			return obj.items[0];
 		} else {
-			var item = obj.items.filter(function(el){
+			var items = obj.items.filter(function(el){
 				return (el.id == id);
 			})
+			if (items.length>0) return items[0];
+			his._eprint("Project not found: " + what + (id ? ' '+id : ''));
 			return item;
 		}
 	}
@@ -1320,7 +1322,7 @@ var pkg = new function() {
 		this._stripOtherFlags();
 		var proj = this._searchAndGetFirst(this._args[0], this._args[1]);
 		if (!proj) return;
-		//print(JSON.stringify(obj, null,4));		
+		//print(JSON.stringify(proj, null,4));
 		print(' '+this._bold(proj.name) + " " + proj.id + ( proj.description ? " - " + proj.description : ''));
 		print(' URL: ' + proj.html_url);	
 		print(' Created on: ' + proj.created_at.split('T')[0].split('-').reverse().join('-'));
@@ -1348,11 +1350,11 @@ var pkg = new function() {
 		var tinnPath = process.env['TINN_PATH'];
 		
 		if (!isGlobal) {
-			return os.cwd();
+			return path.resolve(os.cwd(), 'tinn_modules');
 		} else if (tinnPath && os.isDirAndReadable(tinnPath)){
 			return tinnPath;
 		} else {
-			return process.execPath;
+			return path.resolve(process.execPath, 'tinn_modules');
 		}
 	}
 	
@@ -1440,7 +1442,7 @@ var pkg = new function() {
 				print("no package given... checking package.json");
 				return;
 			}
-			instDir = path.resolve(this._getInstalldir(isGlobal), 'tinn_modules');
+			instDir = this._getInstalldir(isGlobal), 'tinn_modules';
 			
 			pkg = this._args[0].split("@");		
 			if (pkg.length>1) tag = pkg[1];
@@ -1647,7 +1649,7 @@ var pkg = new function() {
 			this._stripOtherFlags();
 		}
 		
-		var instDir = path.resolve(this._getInstalldir(isGlobal), 'tinn_modules');
+		var instDir = this._getInstalldir(isGlobal);
 		var pkgInstDir = path.resolve(instDir, pkg);
 		if (!os.isDirAndReadable(pkgInstDir)) {
 			if (isRoot) {
