@@ -987,7 +987,7 @@ if (process.platform === 'win32' && typeof(Http)!='undefined') {
 	Http._openSocket = Http.openSocket;
 	Http.openSocket = function(addr, nginxPort) {
 		nginxPort = nginxPort ? nginxPort : 80;
-		var nginxDir = process.cwd() + '\\nginx';
+		var nginxDir = process.execPath + '\\nginx';
 		var nginx = nginxDir + '\\nginx.exe'; 
 		var nginxConf = nginxDir + '\\nginx.conf'; 
 		var nginxConfTpl = nginxDir + '\\nginx.conf.tpl'; 
